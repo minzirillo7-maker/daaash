@@ -406,6 +406,9 @@ html.noscroll,html.noscroll body{overflow:hidden}
 .steps-c{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:12px;margin:14px 0 6px}
 .steps-c li{counter-increment:s;display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;font-size:.82rem;line-height:1.6}
 .steps-c li::before{content:counter(s);width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700}
+.fix{margin:8px 0 6px 18px;display:flex;flex-direction:column;gap:4px}
+.fix li{padding-left:2px}
+#conn-out small{display:block;color:var(--muted);margin-top:4px}
 .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;background:var(--bg-2);padding:1px 6px;border-radius:5px;white-space:nowrap}
 .conn-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;align-items:end;margin-top:14px}
 .conn-key{display:flex;gap:6px}
@@ -845,7 +848,7 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
             <ol class="steps-c">
               <li><div>Tocá <b>Copiar código</b>. Ya trae adentro una clave secreta nueva para tu panel.<br><button class="btn btn-sm btn-sell" type="button" id="conn-copy" style="margin-top:8px"><svg class="icon"><use href="#i-copy"/></svg>Copiar código</button></div></li>
               <li><div>Entrá a <a class="link" href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">script.google.com → Nuevo proyecto</a> con la cuenta dueña de la planilla. Borrá lo que aparece, pegá el código y guardá (Ctrl+S). Ponele de nombre <span class="code">VAPE CREW ADMIN</span>.<br><small style="color:var(--muted)">Tiene que ser un proyecto nuevo, no el del catálogo, así no se pisan.</small></div></li>
-              <li><div>Arriba a la derecha: <b>Implementar → Nueva implementación</b>. En el engranaje elegí <b>Aplicación web</b>. <i>Ejecutar como:</i> Yo. <i>Quién tiene acceso:</i> Cualquier usuario. Tocá <b>Implementar</b>.</div></li>
+              <li><div>Arriba a la derecha: <b>Implementar → Nueva implementación</b>. En el engranaje elegí <b>Aplicación web</b>. <i>Ejecutar como:</i> <b>Yo</b>. <i>Quién tiene acceso:</i> <b>Cualquier usuario</b> (ojo: no la opción "con una cuenta de Google"). Tocá <b>Implementar</b>.</div></li>
               <li><div>Google te pide permiso: <b>Autorizar acceso</b>, elegí tu cuenta, <b>Configuración avanzada → Ir a VAPE CREW ADMIN</b> y <b>Permitir</b>. Google avisa que puede ver y editar tus planillas y tu Drive: el script solo usa CLAUDE CATALOGO y una carpeta para las fotos de productos.</div></li>
               <li><div>Copiá la <b>URL de la aplicación web</b> (termina en <span class="code">/exec</span>), pegala abajo y tocá <b>Probar conexión</b>.</div></li>
             </ol>
@@ -2986,19 +2989,44 @@ $('conn-copy').addEventListener('click', function(){
   vConexion();
   copiar(scriptCode(), 'Código copiado, con tu clave adentro');
 });
+/* Diagnóstico paso a paso: dice exactamente qué falta */
+var FIX_ACCESO = '<ol class="fix"><li>En el script: <b>Implementar → Gestionar implementaciones</b> → lápiz.</li><li>En <i>Quién tiene acceso</i> elegí <b>Cualquier usuario</b> (no "Cualquier usuario con una cuenta de Google" ni "Solo yo").</li><li>En <i>Versión</i> elegí <b>Nueva versión</b> y tocá <b>Implementar</b>. La URL no cambia.</li></ol>';
+var FIX_VERSION = '<ol class="fix"><li>Tocá <b>Copiar código</b> acá arriba.</li><li>En el script, borrá todo, pegá y guardá (Ctrl+S).</li><li><b>Implementar → Gestionar implementaciones</b> → lápiz → <i>Versión</i>: <b>Nueva versión</b> → <b>Implementar</b>. Si no hacés esto, Google sigue usando el código viejo.</li></ol>';
+function sondear(url){
+  return fetch(url + (url.indexOf('?') < 0 ? '?' : '&') + 't=' + Date.now()).then(function(r){ return r.text(); }).then(function(t){
+    var j = null; try{ j = JSON.parse(t); }catch(e){}
+    if (j && j.servicio === 'vapecrew-admin') return 'ok';
+    if (Array.isArray(j)) return 'catalogo';
+    return j ? 'otro' : 'html';
+  }, function(){ return 'bloqueado'; });
+}
 $('conn-test').addEventListener('click', function(){
-  ADM.url = $('conn-url').value.trim(); ADM.clave = $('conn-key').value.trim(); saveAdm();
+  var url = $('conn-url').value.trim().replace(/\s+/g, ''), clave = $('conn-key').value.trim();
   var out = $('conn-out'), b = this;
-  if (!/^https:\/\/script\.google(usercontent)?\.com\/.+\/exec$/.test(ADM.url)){ out.className = 'note'; out.innerHTML = 'La URL tiene que ser la de la implementación y terminar en <span class="code">/exec</span>.'; return; }
-  if (!ADM.clave){ out.className = 'note'; out.innerHTML = 'Falta la clave. Si es la primera vez, tocá <b>Copiar código</b>: ahí se crea.'; return; }
-  b.disabled = true; out.className = 'note'; out.textContent = 'Probando…';
-  api('ping').then(function(r){
-    out.className = 'note blue';
-    out.innerHTML = '<b>Conectado a ' + esc(r.planilla) + '.</b> ' + r.productos + ' productos y ' + r.movimientos + ' movimientos. El próximo producto nuevo va a tener el ID ' + r.proximoId + '.' +
-      (r.faltan && r.faltan.length ? '<br>Ojo, no encontré estas columnas: ' + r.faltan.map(esc).join(', ') + '.' : '');
+  function show(html, ok){ out.className = 'note' + (ok ? ' blue' : ''); out.innerHTML = html; }
+  if (/\/dev$/.test(url)){ show('Esa es la URL de <b>prueba</b> (termina en <span class="code">/dev</span>). Usá la de la <b>Aplicación web</b>, que termina en <span class="code">/exec</span>: está en Implementar → Gestionar implementaciones.'); return; }
+  url = url.replace(/\/exec[?#].*$/, '/exec');
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)){ show('La URL tiene que empezar con <span class="code">https://script.google.com/</span> y terminar en <span class="code">/exec</span>. La copiás de Implementar → Gestionar implementaciones → <b>URL de la aplicación web</b>.'); return; }
+  if (!clave){ show('Falta la clave. Tocá <b>Copiar código</b> (ahí se crea) y pegá ese código en el script.'); return; }
+  ADM.url = url; ADM.clave = clave; saveAdm(); $('conn-url').value = url;
+  b.disabled = true; show('Probando la URL…');
+  sondear(url).then(function(st){
+    if (st === 'bloqueado') throw { html:'<b>Google no deja que el panel hable con el script.</b> Casi siempre es el permiso de acceso:' + FIX_ACCESO + '<small>Si ya está en "Cualquier usuario", revisá que la URL sea la del proyecto <b>VAPE CREW ADMIN</b>.</small>' };
+    if (st === 'catalogo') throw { html:'<b>Esa URL es la del script del catálogo de la tienda</b>, no la del ADMIN. Abrí el proyecto nuevo <b>VAPE CREW ADMIN</b> y copiá la URL de su implementación.' };
+    if (st !== 'ok') throw { html:'<b>La URL responde, pero no es el script ADMIN</b> o tiene el código incompleto. Pegá el código completo:' + FIX_VERSION };
+    show('La URL anda. Probando la clave…');
+    return api('ping');
+  }).then(function(r){
+    show('<b>Conectado a ' + esc(r.planilla) + '.</b> ' + r.productos + ' productos y ' + r.movimientos + ' movimientos. El próximo producto nuevo va a tener el ID ' + r.proximoId + '. Ya podés vender y cargar desde el panel.' +
+      (r.faltan && r.faltan.length ? '<br>Ojo, no encontré estas columnas: ' + r.faltan.map(esc).join(', ') + '.' : ''), true);
     vConexion();
-  }).catch(function(e){ out.className = 'note'; out.innerHTML = '<b>No conectó:</b> ' + esc(e.message); })
-  .then(function(){ b.disabled = false; });
+  }).catch(function(e){
+    if (e && e.html){ show(e.html); return; }
+    var m = String(e && e.message || e);
+    if (/Clave incorrecta|Falta la clave/i.test(m)) show('<b>La clave del script no coincide con la de este navegador.</b> Pasa si copiaste el código en otro dispositivo o si lo cambiaste y no publicaste una versión nueva:' + FIX_VERSION);
+    else if (/No encontré la pestaña|No existe la planilla|openById|permiso|permission|authoriz/i.test(m)) show('<b>El script no puede abrir la planilla:</b> ' + esc(m) + '. Implementalo con la misma cuenta de Google que es dueña de CLAUDE CATALOGO y aceptá los permisos.');
+    else show('<b>No conectó:</b> ' + esc(m));
+  }).then(function(){ b.disabled = false; });
 });
 $('conn-link').addEventListener('click', function(){
   var tok = btoa(unescape(encodeURIComponent(JSON.stringify({ u:ADM.url, k:ADM.clave }))));
