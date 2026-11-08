@@ -297,6 +297,29 @@ html.noscroll,html.noscroll body{overflow:hidden}
 .dr-body{flex:1;overflow-y:auto;padding:18px 20px 26px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .dr-foot{border-top:1px solid var(--line);padding:14px 20px max(14px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;background:var(--bg)}
 .dr-sec{margin-bottom:18px}
+/* CREW CARD en la venta */
+.cc{display:none;margin-top:10px;border:1px solid var(--blue-line);background:var(--blue-soft);border-radius:12px;padding:12px;font-size:.78rem;line-height:1.5;color:var(--ink-2)}
+.cc.show{display:block;animation:rowIn .3s}
+.cc.muted{border-color:var(--line);background:var(--bg-2)}
+.cc-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.cc-top b{color:var(--ink);font-size:.82rem}
+.cc-dots{display:flex;gap:5px}
+.cc-dots i{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--blue-line);background:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:.58rem;font-weight:700;color:var(--blue-3)}
+.cc-dots i.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.cc-dots i.now{border-color:var(--blue);border-style:dashed;color:var(--blue)}
+.cc-opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.cc-opt{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:.74rem;font-weight:600;color:var(--ink-2);cursor:pointer;transition:all .15s}
+.cc-opt:hover{border-color:var(--blue);color:var(--blue)}
+.cc-opt.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.cc-gift{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.cc-gift button{border:1px dashed var(--blue-line);background:#fff;border-radius:9px;padding:6px 10px;font-size:.72rem;text-align:left;cursor:pointer}
+.cc-gift button small{display:block;color:var(--muted);font-weight:400}
+.cc-gift button.on{border-style:solid;border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.cc-disc{display:none;justify-content:space-between;font-size:.8rem;color:var(--blue);font-weight:600;margin-bottom:6px}
+.cc-disc.show{display:flex}
+.cc-row-dots{display:inline-flex;gap:3px;vertical-align:middle}
+.cc-row-dots i{width:9px;height:9px;border-radius:50%;background:var(--bg-3)}
+.cc-row-dots i.on{background:var(--blue)}
 .dr-lbl{display:block;font-size:.74rem;font-weight:600;color:var(--ink-2);margin-bottom:7px}
 .dr-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .dr-acts{display:flex;gap:6px;flex-wrap:wrap}
@@ -810,6 +833,8 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
           <div class="card s5 anim"><div class="card-h"><div><h2>Mejores clientes</h2><p>Facturación del período</p></div></div><ol class="hbars" id="c-top"></ol></div>
           <div class="card s7 anim"><div class="card-h"><div><h2>Estado de la cartera</h2><p>Sobre todo el historial</p></div></div><div class="chart" id="c-seg"></div><div class="note" id="c-seg-n"></div></div>
         </div>
+        <div class="grid" id="cc-kpis"></div>
+        <div class="grid"><div class="card s12 anim"><div class="card-h"><div><h2>CREW CARD</h2><p>Tarjeta de fidelidad por WhatsApp · tocá el número para mandarle su premio</p></div><div class="card-tools"><button class="btn btn-sm" type="button" id="cc-reload"><svg class="icon"><use href="#i-refresh"/></svg>Actualizar</button></div></div><div id="cc-body"></div></div></div>
         <div class="grid"><div class="card s12 anim"><div class="card-h"><div><h2>Todos los clientes</h2><p>Según la columna CLIENTE de MOVIMIENTOS</p></div></div><div id="t-cli"></div></div></div>
       </section>
 
@@ -915,17 +940,33 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
  * Es un proyecto INDEPENDIENTE: crealo desde script.google.com → Nuevo proyecto.
  * No lo pegues en el proyecto del catálogo (se pisan las funciones doGet).
  */
-const VERSION = 1;
+const VERSION = 2;
 const SHEET_ID = '1HmbKZprUmHFGQ0K-YvIDvF7gZfu42iUhrYvFeKk1T-Y';
 const CLAVE = '__CLAVE__';            // la pone el panel cuando copiás el código
 const CARPETA_FOTOS = 'VAPE CREW · Fotos de productos';
 const STOCK_BAJO = 3;
 const HOJAS = { stock: 'STOCK', mov: 'MOVIMIENTOS', compras: 'COMPRAS' };
+
+/* CREW CARD (fidelidad). Los WhatsApp van a una planilla PRIVADA aparte
+   ("VAPE CREW · CLIENTES (privado)"), nunca a CLAUDE CATALOGO, que se lee pública.
+   La crea el script solo la primera vez que se usa.
+   Premios según el número de compra del ciclo: 3ª → 10% · 5ª → 20% · 6ª → vape gratis.
+   Si el cliente usa un premio, el conteo vuelve a 0. */
+const CLIENTES_NOMBRE = 'VAPE CREW · CLIENTES (privado)';
+const BIENVENIDA = 2000;               // descuento del pop-up en el primer pedido ($)
+const NIVELES = [3, 5, 6];
+const PREMIO_DE = { 3: '10', 5: '20', 6: 'VAPE' };
+const CLI_HEAD = ['WHATSAPP', 'NOMBRE', 'COMPRAS_CICLO', 'COMPRAS_TOTAL', 'GASTADO_TOTAL', 'PREMIOS_CANJEADOS', 'BIENVENIDA',
+  'PRIMERA_COMPRA', 'ULTIMA_COMPRA', 'ALTA', 'ORIGEN'];
+const LOG_HEAD = ['FECHA', 'WHATSAPP', 'NOMBRE', 'TIPO', 'TOTAL', 'CICLO_ANTES', 'CICLO_DESPUES', 'DETALLE'];
+const LEAD_HEAD = ['FECHA', 'WHATSAPP', 'NOMBRE', 'ORIGEN', 'YA_ERA_CLIENTE'];
 const COMPRAS_HEAD = ['FECHA', 'PRODUCTO', 'SABOR', 'UNIDADES', 'COSTO_TOTAL', 'COSTO_UNITARIO', 'MARGEN_OBJETIVO',
   'PRECIO_SUGERIDO', 'GANANCIA_UNITARIA', 'ROI', 'FACTURACION_POTENCIAL', 'GANANCIA_POTENCIAL'];
 
 /* ------------------------------------------------------------------ */
-function doGet() {
+function doGet(e) {
+  const q = (e && e.parameter) || {};
+  if (PUBLICAS[q.accion]) return publica(q);
   return salida({ ok: true, servicio: 'vapecrew-admin', version: VERSION });
 }
 
@@ -933,6 +974,7 @@ function doPost(e) {
   let b;
   try { b = JSON.parse(e && e.postData ? e.postData.contents : '{}'); }
   catch (err) { return salida({ ok: false, error: 'Pedido inválido' }); }
+  if (PUBLICAS[b.accion]) return publica(b);
   if (!CLAVE || CLAVE.indexOf('__') === 0) return salida({ ok: false, error: 'Falta la clave en el script. Copiá el código de nuevo desde el panel.' });
   if (String(b.clave || '') !== CLAVE) return salida({ ok: false, error: 'Clave incorrecta' });
   const accion = ACCIONES[b.accion];
@@ -991,6 +1033,16 @@ const ACCIONES = {
     });
     if (falta.length && !b.forzar) return { ok: false, sinStock: falta, error: 'No alcanza el stock de: ' + falta.join(', ') };
 
+    /* CREW CARD: se valida antes de escribir nada */
+    const w = tel(b.whatsapp), canje = String(b.canje || '');
+    let CT = null, cli = null;
+    if (String(b.whatsapp || '').trim() && !w) throw new Error('El WhatsApp no es válido: poné los 10 números con característica (ej. 261 512 3456).');
+    if (w) {
+      CT = hojaP(privada(), 'CLIENTES', CLI_HEAD);
+      cli = buscarCli(CT, w);
+      if (canje && premios(cli).indexOf(canje) < 0) throw new Error('Ese premio de la CREW CARD ya no está disponible para este cliente. Actualizá y probá de nuevo.');
+    } else if (canje) throw new Error('Para usar un premio de la CREW CARD cargá el WhatsApp del cliente.');
+
     const movs = [];
     lineas.forEach(function (l) {
       const fila = agregar(M, { 'FECHA': fecha, 'TIPO': 'VENTA', 'ID PRODUCTO': l.p.id, 'PRODUCTO': l.p.producto, 'SABOR': l.p.sabor,
@@ -998,7 +1050,9 @@ const ACCIONES = {
       ponerStock(P, l.p, Math.max(0, (isFinite(l.p.stock) ? l.p.stock : 0) - l.cant));
       movs.push(movOut(fila, fecha, 'VENTA', l.p, l.cant, l.pu, l.total, cliente, notas));
     });
-    return { movs: movs, prods: unicos(lineas.map(function (l) { return l.p; })).map(prodOut) };
+    const out = { movs: movs, prods: unicos(lineas.map(function (l) { return l.p; })).map(prodOut) };
+    if (w) out.cc = sumarCompra(CT, cli, w, cliente, canje, lineas.reduce(function (s, l) { return s + l.total; }, 0), fecha);
+    return out;
   },
 
   /* Deshacer: borra las filas recién cargadas (si no cambiaron) y devuelve el stock */
@@ -1023,6 +1077,7 @@ const ACCIONES = {
       }
       M.sh.deleteRow(f.fila);
     });
+    if (b.cc && b.cc.tel) { try { revertirCompra(b.cc); } catch (e2) {} }
     return { borradas: filas.length, prods: unicos(tocados).map(prodOut) };
   },
 
@@ -1104,6 +1159,24 @@ const ACCIONES = {
       }
     }
     return { id: p.id, prods: [prodOut(p)], movs: movs };
+  },
+
+  /* CREW CARD de un cliente (para la venta) */
+  cliente: function (b) {
+    const w = tel(b.tel);
+    if (!w) throw new Error('WhatsApp inválido');
+    const c = buscarCli(hojaP(privada(), 'CLIENTES', CLI_HEAD), w);
+    return { tel: w, cliente: c ? cliOut(c) : null, tarjeta: tarjetaOut(c) };
+  },
+
+  /* Todos los clientes de la CREW CARD + leads del pop-up */
+  clientes: function () {
+    const ss = privada(), t = hojaP(ss, 'CLIENTES', CLI_HEAD), L = hojaP(ss, 'LEADS', LEAD_HEAD);
+    const last = t.sh.getLastRow(), vals = last >= 2 ? t.sh.getRange(2, 1, last - 1, t.nc).getValues() : [];
+    const lista = vals.map(function (v, i) { return cliObj(t, v, i + 2); }).filter(function (c) { return c.tel; }).map(function (c) {
+      const o = cliOut(c); o.tarjeta = tarjetaOut(c); return o;
+    });
+    return { lista: lista, leads: Math.max(0, L.sh.getLastRow() - 1), url: ss.getUrl(), bienvenida: BIENVENIDA };
   },
 
   /* Sube una foto a Drive y devuelve el link público */
@@ -1202,6 +1275,139 @@ function movOut(fila, fecha, tipo, p, cant, pu, total, cliente, notas) {
   return { fila: fila, ms: fecha.getTime(), tipo: tipo, id: p.id, producto: p.producto, sabor: p.sabor, cantidad: cant,
     precio: pu, total: total, cliente: cliente || '', notas: notas || '' };
 }
+/* ---------------- CREW CARD ---------------- */
+/* Lo que puede pedir cualquiera desde la tienda (sin clave): ver su tarjeta y dejar su WhatsApp */
+const PUBLICAS = {
+  tarjeta: function (b) {
+    const w = tel(b.tel);
+    if (!w) return { ok: false, error: 'Revisá el número: 10 dígitos con característica, sin el 0 ni el 15.' };
+    const c = buscarCli(hojaP(privada(), 'CLIENTES', CLI_HEAD), w);
+    return { existe: !!(c && c.compras > 0), tarjeta: tarjetaOut(c), bienvenida: c && c.bienvenida === 'PENDIENTE' ? BIENVENIDA : 0 };
+  },
+  lead: function (b) {
+    const w = tel(b.tel);
+    if (!w) return { ok: false, error: 'Revisá el número: 10 dígitos con característica, sin el 0 ni el 15.' };
+    const ss = privada(), CT = hojaP(ss, 'CLIENTES', CLI_HEAD), c = buscarCli(CT, w), nombre = limpio(b.nombre).slice(0, 40);
+    const yaCompro = !!(c && c.compras > 0);
+    if (!c) agregar(CT, { 'WHATSAPP': w, 'NOMBRE': nombre, 'COMPRAS_CICLO': 0, 'COMPRAS_TOTAL': 0, 'GASTADO_TOTAL': 0, 'PREMIOS_CANJEADOS': 0,
+      'BIENVENIDA': 'PENDIENTE', 'ALTA': new Date(), 'ORIGEN': 'Pop-up' });
+    else if (!yaCompro && !c.bienvenida) setCli(CT, c.fila, { 'BIENVENIDA': 'PENDIENTE' });
+    const cache = CacheService.getScriptCache();
+    if (!cache.get('lead_' + w)) {
+      agregar(hojaP(ss, 'LEADS', LEAD_HEAD), { 'FECHA': new Date(), 'WHATSAPP': w, 'NOMBRE': nombre, 'ORIGEN': limpio(b.origen).slice(0, 30) || 'pop-up', 'YA_ERA_CLIENTE': yaCompro ? 'SÍ' : 'NO' });
+      cache.put('lead_' + w, '1', 21600);
+    }
+    const bienv = !yaCompro && (!c || !c.bienvenida || c.bienvenida === 'PENDIENTE') ? BIENVENIDA : 0;
+    return { bienvenida: bienv, tarjeta: tarjetaOut(c) };
+  }
+};
+function publica(b) {
+  const cache = CacheService.getScriptCache(), k = 'pub_' + Math.floor(Date.now() / 60000), n = Number(cache.get(k) || 0);
+  if (n > 150) return salida({ ok: false, error: 'Hay muchos pedidos ahora, probá en un ratito.' });
+  cache.put(k, String(n + 1), 120);
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return salida({ ok: false, error: 'Probá de nuevo en unos segundos.' });
+  let res;
+  try { res = Object.assign({ ok: true }, PUBLICAS[b.accion](b) || {}); SpreadsheetApp.flush(); }
+  catch (err) { res = { ok: false, error: 'No pudimos revisar tu tarjeta. Probá en un rato.' }; }
+  finally { lock.releaseLock(); }
+  return salida(res);
+}
+/* WhatsApp argentino a 10 dígitos (característica + número, sin 0, 15, 54 ni 9) */
+function tel(s) {
+  let d = String(s == null ? '' : s).replace(/\D/g, '').replace(/^00/, '');
+  if (d.indexOf('54') === 0 && d.length >= 12) d = d.slice(2);
+  if (d.charAt(0) === '9' && d.length === 11) d = d.slice(1);
+  if (d.charAt(0) === '0') d = d.slice(1);
+  if (d.length === 12) for (let a = 2; a <= 4; a++) if (d.substr(a, 2) === '15') { d = d.slice(0, a) + d.slice(a + 2); break; }
+  if (d.length === 9 && d.indexOf('15') === 0) d = '261' + d.slice(2);
+  if (d.length === 7) d = '261' + d;
+  return d.length === 10 ? d : '';
+}
+/* Planilla privada de clientes: se crea sola y se recuerda su ID */
+function privada() {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty('CLIENTES_ID');
+  if (id) { try { return SpreadsheetApp.openById(id); } catch (e) {} }
+  const ss = SpreadsheetApp.create(CLIENTES_NOMBRE);
+  props.setProperty('CLIENTES_ID', ss.getId());
+  const h = ss.getSheets()[0];
+  h.setName('CLIENTES');
+  h.getRange(1, 1, 1, CLI_HEAD.length).setValues([CLI_HEAD]).setFontWeight('bold');
+  h.setFrozenRows(1);
+  h.getRange('A:A').setNumberFormat('@');
+  return ss;
+}
+function hojaP(ss, nombre, head) {
+  const nueva = !ss.getSheetByName(nombre);
+  const t = tabla(ss, nombre, head);
+  if (nueva) { t.sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); t.sh.setFrozenRows(1); const c = t.col('WHATSAPP'); if (c >= 0) t.sh.getRange(1, c + 1, t.sh.getMaxRows(), 1).setNumberFormat('@'); }
+  return t;
+}
+function cliObj(t, v, fila) {
+  const g = function (k) { const c = t.col(k); return c >= 0 ? v[c] : ''; };
+  const ms = function (x) { return x instanceof Date ? x.getTime() : null; };
+  return { fila: fila, tel: tel(g('WHATSAPP')), nombre: limpio(g('NOMBRE')), ciclo: Number(g('COMPRAS_CICLO')) || 0, compras: Number(g('COMPRAS_TOTAL')) || 0,
+    gastado: Number(g('GASTADO_TOTAL')) || 0, premios: Number(g('PREMIOS_CANJEADOS')) || 0, bienvenida: norm(g('BIENVENIDA')),
+    primera: ms(g('PRIMERA_COMPRA')), ultima: ms(g('ULTIMA_COMPRA')), alta: ms(g('ALTA')), origen: limpio(g('ORIGEN')) };
+}
+function cliOut(c) {
+  return { tel: c.tel, nombre: c.nombre, ciclo: c.ciclo, compras: c.compras, gastado: c.gastado, premios: c.premios, bienvenida: c.bienvenida,
+    primera: c.primera, ultima: c.ultima, alta: c.alta, origen: c.origen };
+}
+function buscarCli(t, w) {
+  const last = t.sh.getLastRow(), c = t.col('WHATSAPP');
+  if (last < 2 || c < 0) return null;
+  const col = t.sh.getRange(2, c + 1, last - 1, 1).getValues();
+  for (let i = 0; i < col.length; i++) if (tel(col[i][0]) === w) return cliObj(t, t.sh.getRange(i + 2, 1, 1, t.nc).getValues()[0], i + 2);
+  return null;
+}
+function setCli(t, fila, obj) { Object.keys(obj).forEach(function (k) { const c = t.col(k); if (c >= 0) t.sh.getRange(fila, c + 1).setValue(obj[k]); }); }
+/* Premios que puede usar en ESTA compra */
+function premios(c) {
+  const n = (c ? c.ciclo : 0) + 1, r = [];
+  if (c && c.bienvenida === 'PENDIENTE' && !(c.compras > 0)) r.push('BIENVENIDA');
+  if (n >= 3) r.push('10');
+  if (n >= 5) r.push('20');
+  if (n >= 6) r.push('VAPE');
+  return r;
+}
+function tarjetaOut(c) {
+  const ciclo = c ? c.ciclo : 0, n = ciclo + 1, sig = NIVELES.filter(function (x) { return x > n; })[0];
+  return { compras: ciclo, esta: n, disponibles: premios(c), proximo: sig ? { faltan: sig - n, premio: PREMIO_DE[sig] } : null, bienvenida: BIENVENIDA };
+}
+function logCC(w, nombre, tipo, total, antes, despues, detalle) {
+  agregar(hojaP(privada(), 'CREWCARD', LOG_HEAD), { 'FECHA': new Date(), 'WHATSAPP': w, 'NOMBRE': nombre, 'TIPO': tipo, 'TOTAL': total,
+    'CICLO_ANTES': antes, 'CICLO_DESPUES': despues, 'DETALLE': detalle || '' });
+}
+function sumarCompra(t, cli, w, nombre, canje, total, fecha) {
+  const antes = cli ? cli.ciclo : 0, esPremio = canje === '10' || canje === '20' || canje === 'VAPE';
+  const despues = esPremio ? 0 : antes + 1;
+  const d = { 'COMPRAS_CICLO': despues, 'COMPRAS_TOTAL': (cli ? cli.compras : 0) + 1, 'GASTADO_TOTAL': (cli ? cli.gastado : 0) + total, 'ULTIMA_COMPRA': fecha };
+  if (esPremio) d['PREMIOS_CANJEADOS'] = (cli ? cli.premios : 0) + 1;
+  if (canje === 'BIENVENIDA') d['BIENVENIDA'] = 'USADA';
+  else if (cli && cli.bienvenida === 'PENDIENTE') d['BIENVENIDA'] = 'NO USADA';
+  if (nombre) d['NOMBRE'] = nombre;
+  if (cli) { if (!cli.primera) d['PRIMERA_COMPRA'] = fecha; setCli(t, cli.fila, d); }
+  else { d['WHATSAPP'] = w; d['PRIMERA_COMPRA'] = fecha; d['ALTA'] = new Date(); d['ORIGEN'] = 'Venta'; d['PREMIOS_CANJEADOS'] = d['PREMIOS_CANJEADOS'] || 0; agregar(t, d); }
+  const tipo = canje === '10' ? 'CANJE 10%' : canje === '20' ? 'CANJE 20%' : canje === 'VAPE' ? 'CANJE VAPE GRATIS' : canje === 'BIENVENIDA' ? 'COMPRA + BIENVENIDA' : 'COMPRA';
+  logCC(w, nombre || (cli ? cli.nombre : ''), tipo, total, antes, despues, '');
+  const nuevo = { ciclo: despues, compras: d['COMPRAS_TOTAL'], bienvenida: norm(d['BIENVENIDA'] || (cli ? cli.bienvenida : '')) };
+  return { tel: w, nuevo: !cli, canje: canje, total: total, antes: antes, despues: despues, tarjeta: tarjetaOut(nuevo),
+    previo: cli ? { ciclo: cli.ciclo, compras: cli.compras, gastado: cli.gastado, premios: cli.premios, bienvenida: cli.bienvenida, ultima: cli.ultima, primera: cli.primera } : null };
+}
+function revertirCompra(cc) {
+  const w = tel(cc.tel); if (!w) return;
+  const t = hojaP(privada(), 'CLIENTES', CLI_HEAD), c = buscarCli(t, w); if (!c) return;
+  if (cc.nuevo || !cc.previo) t.sh.deleteRow(c.fila);
+  else {
+    const p = cc.previo;
+    setCli(t, c.fila, { 'COMPRAS_CICLO': p.ciclo, 'COMPRAS_TOTAL': p.compras, 'GASTADO_TOTAL': p.gastado, 'PREMIOS_CANJEADOS': p.premios,
+      'BIENVENIDA': p.bienvenida || '', 'ULTIMA_COMPRA': p.ultima ? new Date(p.ultima) : '', 'PRIMERA_COMPRA': p.primera ? new Date(p.primera) : '' });
+  }
+  logCC(w, c.nombre, 'ANULADA', -(Number(cc.total) || 0), cc.despues, cc.nuevo ? 0 : cc.previo.ciclo, 'Se deshizo la venta desde el panel');
+}
+
 function guardarFoto(f, nombre) {
   const m = String(f.base64).match(/^data:([^;]+);base64,(.*)$/);
   const mime = m ? m[1] : (f.mime || 'image/webp'), datos = m ? m[2] : String(f.base64);
@@ -1975,7 +2181,9 @@ function vClientes(R, V){
     { k:'first', label:'Primera compra', num:true, get:function(r){ return r.first; }, fmt:function(r){ return fd(r.first) + '/' + String(r.first.getFullYear()).slice(2); } },
     { k:'since', label:'Última compra', num:true, get:function(r){ return r.since; }, fmt:function(r){ return daysAgo(r.last); }, csv:function(r){ return r.last; } }
   ], L, { sort:'prev', dir:'desc', search:'Buscar cliente o sabor', file:'clientes', page:30, empty:'Todavía no hay ventas con la columna CLIENTE cargada.' });
+  ccView();
 }
+$('cc-reload').addEventListener('click', function(){ CC.lista = null; CC.err = null; ccView(); });
 
 /* ---------- WEB ---------- */
 function vWeb(R){
@@ -2457,8 +2665,7 @@ function pickerBind(id, o){
 
 /* ---------- promos (las mismas reglas que la tienda) ---------- */
 var PROMOS = [
-  { key:'KING', nombre:'ICEKING · TRIO · RABBEATS', match:[['ICEKING'],['TRIO'],['RABBEATS']], tiers:[{min:2, cu:27000},{min:3, cu:26000}] },
-  { key:'BC5K', nombre:'BC 5K', match:[['BC','5K']], pack:{ n:2, total:15000 } }
+  { key:'BC5K', nombre:'BC 5K', match:[['BC','5K']], pack:{ n:2, total:16500 } }
 ];
 function pn(s){ return norm(s).replace(/[^A-Z0-9]/g, '').replace(/(\d)O(K)/g, '$10$2'); }
 function promoDe(modelo){
@@ -2513,16 +2720,20 @@ function openSale(preId){
     body:'<div class="dr-sec">' + pickerHTML('sv', 'Buscá sabor o modelo') + '</div>' +
       '<div class="dr-sec"><div class="lines" id="sv-lines"></div><div class="promo-note" id="sv-promo"></div></div>' +
       '<div class="dr-sec dr-row"><div><label class="dr-lbl" for="sv-cli">Cliente</label><input class="in" id="sv-cli" list="dl-clientes" placeholder="Nombre" autocomplete="off" autocapitalize="words"></div>' +
-      '<div><label class="dr-lbl" for="sv-fecha">Fecha y hora</label><input class="in" id="sv-fecha" type="datetime-local"></div></div>' +
+      '<div><label class="dr-lbl" for="sv-tel">WhatsApp · CREW CARD</label><input class="in" id="sv-tel" inputmode="tel" placeholder="261 512 3456" autocomplete="off"></div></div>' +
+      '<div class="cc" id="sv-cc"></div>' +
+      '<div class="dr-sec" style="margin-top:18px"><label class="dr-lbl" for="sv-fecha">Fecha y hora</label><input class="in" id="sv-fecha" type="datetime-local"></div>' +
       '<div class="dr-sec"><label class="dr-lbl" for="sv-notas">Notas</label><input class="in" id="sv-notas" placeholder="Opcional: delivery, efectivo, retiró en Maipú…" autocomplete="off"></div>' +
-      '<label class="chk"><input type="checkbox" id="sv-promo-on"' + (PROMO_ON ? ' checked' : '') + '><span>Aplicar las promos de la tienda <small>ICEKING · TRIO · RABBEATS combinables y BC 5K 2 por $15.000</small></span></label>',
-    foot:'<div class="dr-err" id="dr-err"></div><div class="total-row"><span id="sv-count">Sin productos</span><b id="sv-total">$0</b></div>' +
+      '<label class="chk"><input type="checkbox" id="sv-promo-on"' + (PROMO_ON ? ' checked' : '') + '><span>Aplicar las promos de la tienda <small>BC 5K 2 por $16.500</small></span></label>',
+    foot:'<div class="dr-err" id="dr-err"></div><div class="cc-disc" id="sv-disc"></div><div class="total-row"><span id="sv-count">Sin productos</span><b id="sv-total">$0</b></div>' +
       '<button class="btn btn-sell btn-lg" id="dr-go" type="button"><svg class="icon"><use href="#i-check"/></svg>Registrar venta</button>' });
   SPK = pickerBind('sv', { onPick:function(p){ addSaleLine(p.id); drawSaleLines(); }, allowOut:true,
     count:function(p){ var l = SALE.lines.filter(function(x){ return String(x.id) === String(p.id); })[0]; return l ? l.cant : 0; } });
   $('sv-fecha').value = localDT(new Date());
   if (SALE.cliente) $('sv-cli').value = SALE.cliente;
   if (SALE.notas) $('sv-notas').value = SALE.notas;
+  if (SALE.tel) $('sv-tel').value = SALE.tel;
+  ccBind();
   $('sv-fecha').addEventListener('input', function(){ SALE.fechaTocada = true; SALE.op = null; });
   $('sv-cli').addEventListener('input', function(){ SALE.cliente = this.value; SALE.op = null; });
   $('sv-notas').addEventListener('input', function(){ SALE.notas = this.value; SALE.op = null; });
@@ -2562,12 +2773,17 @@ function saleTotals(){
   });
   $('sv-promo').innerHTML = P.notes.length ? '<svg class="icon"><use href="#i-tag"/></svg><span>' + P.notes.map(esc).join(' · ') + (P.ahorro ? ' · ahorro ' + money(P.ahorro) : '') + '</span>' : '';
   $('sv-promo').classList.toggle('show', !!P.notes.length);
+  var C = saleCalc();
+  if (C.gratis) u++;
+  $('sv-disc').innerHTML = C.desc ? '<span>CREW CARD · ' + esc(ccLabel(SALE.canje)) + '</span><span>−' + money(C.desc) + '</span>' : (C.gratis ? '<span>CREW CARD · vape gratis: ' + esc(C.gratis.sabor) + '</span><span>$0</span>' : '');
+  $('sv-disc').classList.toggle('show', !!(C.desc || C.gratis));
+  tot = C.total;
   $('sv-count').textContent = u ? u + ' ' + plural(u, 'vape', 'vapes') : 'Sin productos';
   $('sv-total').textContent = money(tot);
   $('dr-go').innerHTML = '<svg class="icon"><use href="#i-check"/></svg>' + (u ? 'Registrar venta · ' + money(tot) : 'Registrar venta');
 }
 function saleLineClick(e){
-  if (e.target.closest('[data-clear]')){ SALE = newSale(); $('sv-cli').value = ''; $('sv-notas').value = ''; drErr(''); drawSaleLines(); return; }
+  if (e.target.closest('[data-clear]')){ SALE = newSale(); $('sv-cli').value = ''; $('sv-notas').value = ''; $('sv-tel').value = ''; ccDraw(); drErr(''); drawSaleLines(); return; }
   var b = e.target.closest('button[data-a]'); if (!b) return;
   var i = +b.closest('.line').getAttribute('data-i'), l = SALE.lines[i]; if (!l) return;
   var a = b.getAttribute('data-a');
@@ -2586,10 +2802,16 @@ function saleLineInput(e){
   saleTotals();
 }
 function submitSale(){
-  var P = priceLines(SALE.lines, PROMO_ON);
+  var P = priceLines(SALE.lines, PROMO_ON), C = saleCalc();
   if (!P.rows.length){ drErr('Agregá al menos un producto.'); return; }
+  var telTxt = $('sv-tel').value.trim(), w = telN(telTxt);
+  if (telTxt && !w){ drErr('<b>El WhatsApp no es válido.</b> Poné los 10 números con característica, sin el 0 ni el 15 (ej. 261 512 3456). O borralo si no lo tenés.'); return; }
+  if (SALE.canje && !w){ drErr('Para usar un premio de la CREW CARD cargá el WhatsApp.'); return; }
+  if (SALE.canje === 'VAPE' && !C.gratis){ drErr('<b>Elegí qué vape se lleva gratis</b> en la CREW CARD.'); return; }
+  if (w && !CC.data[w] && !SALE.ccOk){ ccFetch(w, true); drErr('Revisando la CREW CARD de este cliente… tocá de nuevo en un segundo.'); return; }
   var pedido = {};
   P.rows.forEach(function(r){ pedido[r.p.id] = (pedido[r.p.id] || 0) + r.line.cant; });
+  if (C.gratis) pedido[C.gratis.id] = (pedido[C.gratis.id] || 0) + 1;
   var falta = Object.keys(pedido).filter(function(id){ return pedido[id] > stockN(prodById(id)); }).map(function(id){ var p = prodById(id); return p.sabor + ' (' + tc(p.modelo) + ', hay ' + stockN(p) + ')'; });
   if (falta.length && !SALE.forzar){
     drErr('<b>No alcanza el stock</b> de ' + falta.map(esc).join(', ') + '. Si lo vendiste igual, registralo y el stock queda en 0. ' +
@@ -2600,12 +2822,17 @@ function submitSale(){
   var fecha = SALE.fechaTocada && $('sv-fecha').value ? new Date($('sv-fecha').value).getTime() : Date.now();
   SALE.op = SALE.op || uid();
   drErr(''); drBusy(true, 'Guardando en la planilla…');
-  api('venta', { items:P.rows.map(function(r){ return { id:r.p.id, cantidad:r.line.cant, precio:Math.round(r.unit), total:Math.round(r.total) }; }),
-    cliente:$('sv-cli').value, notas:$('sv-notas').value, fecha:fecha, forzar:SALE.forzar }, SALE.op)
+  var items = C.rows.map(function(r){ return { id:r.p.id, cantidad:r.line.cant, precio:Math.round(r.total / r.line.cant), total:Math.round(r.total) }; });
+  if (C.gratis) items.push({ id:C.gratis.id, cantidad:1, precio:0, total:0 });
+  var notas = $('sv-notas').value.trim();
+  if (SALE.canje) notas = (notas ? notas + ' · ' : '') + 'CREW CARD: ' + ccLabel(SALE.canje) + (C.gratis ? ' (' + C.gratis.sabor + ')' : '');
+  api('venta', { items:items, cliente:$('sv-cli').value, notas:notas, fecha:fecha, forzar:SALE.forzar, whatsapp:w, canje:SALE.canje || '' }, SALE.op)
   .then(function(res){
     commit(res); SALE = null; closeDrawer(true);
-    var tot = (res.movs || []).reduce(function(s, m){ return s + (Number(m.total) || 0); }, 0);
-    toast('Venta registrada · ' + money(tot), { action:'Deshacer', ms:9000, fn:function(){ undo(res, 'venta'); } });
+    var tot = (res.movs || []).reduce(function(s, m){ return s + (Number(m.total) || 0); }, 0), extra = '';
+    if (res.cc){ ccStore(res.cc.tel, res.cc.tarjeta); CC.lista = null; extra = res.cc.canje && res.cc.canje !== 'BIENVENIDA' ? ' · premio canjeado' : ' · CREW CARD ' + Math.min(6, res.cc.despues) + '/6'; }
+    else if (w) extra = ' · ojo: actualizá el script (la CREW CARD no se guardó)';
+    toast('Venta registrada · ' + money(tot) + extra, { action:'Deshacer', ms:9000, fn:function(){ undo(res, 'venta'); } });
   }).catch(function(e){
     drBusy(false);
     if (e.setup){ needSetup(); return; }
@@ -2616,10 +2843,179 @@ function submitSale(){
 }
 function undo(res, que){
   toast('Deshaciendo…', { ms:20000 });
-  api('anular', { movs:res.movs }).then(function(r2){
+  api('anular', { movs:res.movs, cc:res.cc || null }).then(function(r2){
+    if (res.cc){ delete CC.data[res.cc.tel]; CC.lista = null; }
     commit({ del:true, movs:res.movs, prods:r2.prods });
     toast(que === 'venta' ? 'Listo, la venta se borró' : 'Listo, se deshizo');
   }).catch(function(e){ toast('No se pudo deshacer: ' + e.message, { ms:6000 }); });
+}
+
+/* =============================================================
+   CREW CARD (fidelidad por WhatsApp)
+   3ª compra 10% · 5ª compra 20% · 6ª compra vape gratis (1K a 15K pitadas).
+   Si usa un premio, el conteo vuelve a 0. Los datos viven en la planilla
+   privada de clientes, a través del script ADMIN (versión 2 o más).
+   ============================================================= */
+var CC = { data:{}, lista:null, leads:0, url:'', bienv:2000, t:null, cargando:false };
+function telN(s){
+  var d = String(s == null ? '' : s).replace(/\D/g, '').replace(/^00/, '');
+  if (d.indexOf('54') === 0 && d.length >= 12) d = d.slice(2);
+  if (d.charAt(0) === '9' && d.length === 11) d = d.slice(1);
+  if (d.charAt(0) === '0') d = d.slice(1);
+  if (d.length === 12) for (var a = 2; a <= 4; a++) if (d.substr(a, 2) === '15'){ d = d.slice(0, a) + d.slice(a + 2); break; }
+  if (d.length === 9 && d.indexOf('15') === 0) d = '261' + d.slice(2);
+  if (d.length === 7) d = '261' + d;
+  return d.length === 10 ? d : '';
+}
+function telF(w){ return w ? w.slice(0, 3) + ' ' + w.slice(3, 6) + ' ' + w.slice(6) : ''; }
+function ccLabel(k){ return { '10':'10% off', '20':'20% off', 'VAPE':'vape gratis', 'BIENVENIDA':'bienvenida −' + money(CC.bienv) }[k] || ''; }
+function ccPuffs(m){ var g = String(m || '').replace(/(\d)O(K)/gi, '$10$2').match(/(\d+(?:[.,]\d+)?)\s*K\b/i); return g ? Number(g[1].replace(',', '.')) : NaN; }
+function ccRegalables(){
+  return DATA.stock.filter(function(p){ var k = ccPuffs(p.modelo); return k >= 1 && k <= 15 && stockN(p) > 0; })
+    .sort(function(a, b){ return ccPuffs(b.modelo) - ccPuffs(a.modelo) || stockN(b) - stockN(a); });
+}
+function ccStore(w, tarjeta, cliente){ CC.data[w] = { tarjeta:tarjeta, cliente:cliente || (CC.data[w] && CC.data[w].cliente) || null }; }
+function ccBind(){
+  SALE.ccOk = false;
+  $('sv-tel').addEventListener('input', function(){
+    SALE.tel = this.value; SALE.op = null; SALE.canje = ''; SALE.gratis = null; SALE.ccOk = false;
+    clearTimeout(CC.t); var w = telN(this.value);
+    ccDraw();
+    if (w) CC.t = setTimeout(function(){ ccFetch(w); }, 350);
+    saleTotals();
+  });
+  $('sv-cli').addEventListener('change', function(){
+    if ($('sv-tel').value.trim() || !CC.lista) return;
+    var k = norm(this.value), c = CC.lista.filter(function(x){ return norm(x.nombre) === k; })[0];
+    if (c){ $('sv-tel').value = telF(c.tel); SALE.tel = $('sv-tel').value; ccStore(c.tel, c.tarjeta, c); ccDraw(); saleTotals(); }
+  });
+  $('sv-cc').addEventListener('click', function(e){
+    var o = e.target.closest('[data-cc]'), g = e.target.closest('[data-gift]');
+    if (o){ SALE.canje = o.getAttribute('data-cc'); if (SALE.canje !== 'VAPE') SALE.gratis = null; SALE.op = null; ccDraw(); saleTotals(); }
+    if (g){ SALE.gratis = g.getAttribute('data-gift'); SALE.op = null; ccDraw(); saleTotals(); }
+  });
+  ccDraw();
+  if (!CC.lista) ccLoadList();
+  var w = telN($('sv-tel').value); if (w && !CC.data[w]) ccFetch(w);
+}
+function ccFetch(w, reintento){
+  if (CC.cargando === w) return;
+  CC.cargando = w;
+  api('cliente', { tel:w }).then(function(r){
+    CC.cargando = false; ccStore(w, r.tarjeta, r.cliente);
+    if (SALE && telN($('sv-tel') ? $('sv-tel').value : '') === w){
+      SALE.ccOk = true;
+      if (r.cliente && r.cliente.nombre && !$('sv-cli').value.trim()){ $('sv-cli').value = tc(r.cliente.nombre); SALE.cliente = $('sv-cli').value; }
+      ccDraw(); saleTotals(); if (reintento) drErr('');
+    }
+  }).catch(function(e){
+    CC.cargando = false;
+    if (SALE) SALE.ccOk = true;   // sin tarjeta igual se puede vender
+    var box = $('sv-cc'); if (!box) return;
+    box.className = 'cc muted show';
+    box.innerHTML = /desconocida/i.test(e.message) ? '<b>La CREW CARD necesita el script nuevo.</b> Andá a Ajustes → Conexión → Copiar código, pegalo en el script e implementá una <b>nueva versión</b>. La venta se registra igual.'
+      : 'No pude leer la CREW CARD (' + esc(e.message) + '). La venta se registra igual.';
+  });
+}
+function ccLoadList(){
+  if (!admOk()) return Promise.resolve();
+  return api('clientes').then(function(r){
+    CC.lista = r.lista || []; CC.leads = r.leads || 0; CC.url = r.url || ''; CC.bienv = r.bienvenida || CC.bienv;
+    CC.lista.forEach(function(c){ ccStore(c.tel, c.tarjeta, c); });
+    var dl = $('dl-clientes'), have = {};
+    if (dl){ Array.prototype.forEach.call(dl.options, function(o){ have[norm(o.value)] = 1; });
+      CC.lista.forEach(function(c){ if (c.nombre && !have[norm(c.nombre)]){ var o = document.createElement('option'); o.value = tc(c.nombre); dl.appendChild(o); } }); }
+    if (document.querySelector('.view.on[data-view="clientes"]')) ccView();
+  }).catch(function(e){ CC.err = e.message; if (document.querySelector('.view.on[data-view="clientes"]')) ccView(); });
+}
+function ccDots(n, ciclo, esta){
+  var h = '';
+  for (var i = 1; i <= 6; i++) h += '<i class="' + (i <= ciclo ? 'on' : i === esta ? 'now' : '') + '">' + (i === 3 ? '10%' : i === 5 ? '20%' : i === 6 ? '★' : '') + '</i>';
+  return h;
+}
+function ccDraw(){
+  var box = $('sv-cc'); if (!box || !SALE) return;
+  var txt = $('sv-tel').value.trim(), w = telN(txt);
+  if (!txt){ box.className = 'cc'; box.innerHTML = ''; return; }
+  if (!w){ box.className = 'cc muted show'; box.innerHTML = 'Poné los 10 números con característica, sin 0 ni 15 (ej. 261 512 3456).'; return; }
+  var d = CC.data[w];
+  if (!d){ box.className = 'cc muted show'; box.innerHTML = 'Buscando la CREW CARD de ' + telF(w) + '…'; return; }
+  var t = d.tarjeta || { compras:0, esta:1, disponibles:[] }, c = d.cliente;
+  if (c && c.nombre && !$('sv-cli').value.trim()){ $('sv-cli').value = tc(c.nombre); SALE.cliente = $('sv-cli').value; }
+  var head = c && c.compras > 0 ? '<b>' + esc(c.nombre ? tc(c.nombre) : telF(w)) + '</b> · esta es su compra n° ' + t.esta + ' del ciclo' : '<b>Cliente nuevo en la CREW CARD</b> · arranca con esta compra';
+  var h = '<div class="cc-top"><div>' + head + '</div><div class="cc-dots" aria-label="' + t.compras + ' de 6">' + ccDots(6, t.compras, Math.min(6, t.esta)) + '</div></div>';
+  var disp = t.disponibles || [];
+  if (disp.length){
+    h += '<div>' + (disp.indexOf('VAPE') >= 0 ? '<b>Tiene un vape gratis disponible.</b> ' : '') + 'Preguntale si quiere usar un premio. Si lo usa, la tarjeta vuelve a 0.</div><div class="cc-opts">' +
+      '<button type="button" class="cc-opt' + (!SALE.canje ? ' on' : '') + '" data-cc="">No usar, sigue juntando</button>' +
+      disp.map(function(k){ return '<button type="button" class="cc-opt' + (SALE.canje === k ? ' on' : '') + '" data-cc="' + k + '">' + esc(ccLabel(k)) + '</button>'; }).join('') + '</div>';
+    if (SALE.canje === 'VAPE'){
+      var R = ccRegalables();
+      h += R.length ? '<div style="margin-top:10px"><b>¿Cuál se lleva?</b> (de 1K a 15K pitadas, con stock)</div><div class="cc-gift">' + R.slice(0, 24).map(function(p){
+        return '<button type="button" data-gift="' + esc(p.id) + '" class="' + (String(SALE.gratis) === String(p.id) ? 'on' : '') + '">' + esc(p.sabor) + '<small>' + esc(tc(p.modelo)) + ' · ' + stockN(p) + ' en stock</small></button>';
+      }).join('') + '</div>' : '<div style="margin-top:10px"><b>No hay vapes de 1K a 15K pitadas con stock.</b> Cargá stock o usá otro premio.</div>';
+    }
+  } else if (t.proximo){
+    h += '<div>Le ' + (t.proximo.faltan === 1 ? 'falta <b>1 compra</b>' : 'faltan <b>' + t.proximo.faltan + ' compras</b>') + ' para ' + (t.proximo.premio === 'VAPE' ? 'el <b>vape gratis</b>' : 'el <b>' + t.proximo.premio + '% off</b>') + '.</div>';
+  }
+  box.className = 'cc show'; box.innerHTML = h;
+}
+/* Totales con el premio aplicado. El descuento se reparte entre los productos. */
+function saleCalc(){
+  var P = priceLines(SALE.lines, PROMO_ON), k = SALE.canje || '', desc = 0;
+  if (k === '10' || k === '20') desc = Math.round(P.total * Number(k) / 100);
+  if (k === 'BIENVENIDA') desc = Math.min(CC.bienv, P.total);
+  var rows = P.rows.map(function(r){ return { p:r.p, line:r.line, total:r.total }; });
+  if (desc && P.total > 0){
+    var resto = desc;
+    rows.forEach(function(r, i){ var d = i === rows.length - 1 ? resto : Math.round(desc * r.total / P.total); d = Math.min(d, r.total); r.total -= d; resto -= d; });
+  }
+  var gratis = k === 'VAPE' && SALE.gratis ? prodById(SALE.gratis) : null;
+  return { rows:rows, desc:desc, gratis:gratis, total:Math.max(0, P.total - desc) };
+}
+/* Vista Clientes: tarjeta de cada uno */
+function ccView(){
+  var box = $('cc-body'); if (!box) return;
+  if (!admOk()){ box.innerHTML = '<div class="note" style="margin:0">Conectá el panel (Ajustes → Conexión) para ver la CREW CARD. Los WhatsApp no se guardan en la planilla pública, por eso se leen con la clave.</div>'; $('cc-kpis').innerHTML = ''; return; }
+  if (!CC.lista){
+    box.innerHTML = CC.err ? '<div class="note" style="margin:0">' + (/desconocida/i.test(CC.err) ? '<b>Falta actualizar el script.</b> ' + FIX_VERSION : 'No pude leer la CREW CARD: ' + esc(CC.err)) + '</div>' : '<div class="skel" style="height:120px"></div>';
+    if (!CC.err) ccLoadList();
+    return;
+  }
+  var L = CC.lista, compr = L.filter(function(c){ return c.compras > 0; });
+  var conPremio = compr.filter(function(c){ return (c.tarjeta.disponibles || []).some(function(k){ return k !== 'BIENVENIDA'; }); });
+  var pop = L.filter(function(c){ return norm(c.origen) === 'POP-UP'; }), popC = pop.filter(function(c){ return c.compras > 0; });
+  var canj = L.reduce(function(s, c){ return s + (c.premios || 0); }, 0);
+  kpiRow($('cc-kpis'), [
+    { id:'cc1', label:'Clientes con tarjeta', icon:'users', val:compr.length, fmt:intf, note:'compraron con WhatsApp anotado' },
+    { id:'cc2', label:'Con premio para usar', icon:'tag', val:conPremio.length, fmt:intf, note:'mandales un mensaje' },
+    { id:'cc3', label:'WhatsApp del pop-up', icon:'globe', val:CC.leads, fmt:intf, note:popC.length + ' ya ' + plural(popC.length, 'compró', 'compraron') },
+    { id:'cc4', label:'Premios canjeados', icon:'check', val:canj, fmt:intf, note:'desde que arrancó' }
+  ], 's3');
+  var msg = function(c){
+    var t = c.tarjeta, nom = c.nombre ? tc(c.nombre).split(' ')[0] : '';
+    var txt = (t.disponibles || []).indexOf('VAPE') >= 0 ? 'Ey' + (nom ? ' ' + nom : '') + '! Completaste tu CREW CARD: en tu próximo pedido te llevás un vape de regalo. Pedí cuando quieras.'
+      : (t.disponibles || []).indexOf('20') >= 0 ? 'Ey' + (nom ? ' ' + nom : '') + '! Tenés 20% off en tu próximo pedido por la CREW CARD. ¿Te armo algo?'
+      : (t.disponibles || []).indexOf('10') >= 0 ? 'Ey' + (nom ? ' ' + nom : '') + '! Tu próximo pedido tiene 10% off por la CREW CARD (o seguí juntando para el 20% y el vape gratis).'
+      : c.compras === 0 ? 'Ey' + (nom ? ' ' + nom : '') + '! Te dejamos ' + money(CC.bienv) + ' off en tu primer pedido. ¿Qué sabor te mando?'
+      : 'Ey' + (nom ? ' ' + nom : '') + '! Entró stock nuevo. Te faltan ' + (t.proximo ? t.proximo.faltan : 1) + ' compras para tu próximo premio de la CREW CARD.';
+    return 'https://wa.me/549' + c.tel + '?text=' + encodeURIComponent(txt);
+  };
+  if (TBL['t-cc']) TBL['t-cc'].q = '';
+  box.innerHTML = '<div id="t-cc"></div>' + (CC.url ? '<div class="note">Los datos están en tu planilla privada <a class="link" href="' + esc(CC.url) + '" target="_blank" rel="noopener">VAPE CREW · CLIENTES</a> (no la compartas). Premios: 3ª compra 10% · 5ª 20% · 6ª vape gratis. Si usan uno, vuelven a 0.</div>' : '');
+  table('t-cc', [
+    { k:'nombre', label:'Cliente', get:function(r){ return r.nombre || telF(r.tel); }, cls:'strong', fmt:function(r){ return esc(r.nombre ? tc(r.nombre) : telF(r.tel)) + (norm(r.origen) === 'POP-UP' ? ' <span class="pill p-new">pop-up</span>' : ''); } },
+    { k:'tel', label:'WhatsApp', get:function(r){ return r.tel; }, fmt:function(r){ return '<a class="link" href="' + msg(r) + '" target="_blank" rel="noopener">' + telF(r.tel) + '</a>'; } },
+    { k:'ciclo', label:'Tarjeta', num:true, get:function(r){ return r.ciclo; }, fmt:function(r){ var h = '<span class="cc-row-dots">'; for (var i = 1; i <= 6; i++) h += '<i class="' + (i <= r.ciclo ? 'on' : '') + '"></i>'; return h + '</span> ' + r.ciclo + '/6'; } },
+    { k:'premio', label:'Premio', get:function(r){ var d = (r.tarjeta.disponibles || []).filter(function(k){ return k !== 'BIENVENIDA'; }); return d.length ? d[d.length - 1] : ''; },
+      fmt:function(r){ var d = (r.tarjeta.disponibles || []), last = d.filter(function(k){ return k !== 'BIENVENIDA'; }).pop();
+        if (last) return '<span class="pill p-ok">' + esc(ccLabel(last)) + ' listo</span>';
+        if (d.indexOf('BIENVENIDA') >= 0) return '<span class="pill p-new">bienvenida pendiente</span>';
+        return r.tarjeta.proximo ? '<span class="sub">faltan ' + r.tarjeta.proximo.faltan + ' para ' + (r.tarjeta.proximo.premio === 'VAPE' ? 'el vape' : r.tarjeta.proximo.premio + '%') + '</span>' : ''; } },
+    { k:'compras', label:'Compras', num:true, get:function(r){ return r.compras; } },
+    { k:'gastado', label:'Gastado', num:true, get:function(r){ return r.gastado; }, fmt:function(r){ return money(r.gastado); } },
+    { k:'ultima', label:'Última compra', num:true, get:function(r){ return r.ultima || 0; }, fmt:function(r){ return r.ultima ? daysAgo(new Date(r.ultima)) : '<span class="sub">—</span>'; }, csv:function(r){ return r.ultima ? new Date(r.ultima) : ''; } }
+  ], L, { sort:'ultima', dir:'desc', search:'Buscar nombre o número', file:'crew-card', page:30, empty:'Todavía no hay ventas con WhatsApp. Cargalo en cada venta y se arma solo.' });
 }
 
 /* =============================================================
