@@ -940,7 +940,7 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
  * Es un proyecto INDEPENDIENTE: crealo desde script.google.com → Nuevo proyecto.
  * No lo pegues en el proyecto del catálogo (se pisan las funciones doGet).
  */
-const VERSION = 2;
+const VERSION = 3;
 const SHEET_ID = '1HmbKZprUmHFGQ0K-YvIDvF7gZfu42iUhrYvFeKk1T-Y';
 const CLAVE = '__CLAVE__';            // la pone el panel cuando copiás el código
 const CARPETA_FOTOS = 'VAPE CREW · Fotos de productos';
@@ -1284,6 +1284,16 @@ const PUBLICAS = {
     const c = buscarCli(hojaP(privada(), 'CLIENTES', CLI_HEAD), w);
     return { existe: !!(c && c.compras > 0), tarjeta: tarjetaOut(c), bienvenida: c && c.bienvenida === 'PENDIENTE' ? BIENVENIDA : 0 };
   },
+  registro: function (b) {
+    const w = tel(b.tel);
+    if (!w) return { ok: false, error: 'Revisá el número: 10 dígitos con característica, sin el 0 ni el 15.' };
+    const nombre = limpio(b.nombre).slice(0, 40);
+    const CT = hojaP(privada(), 'CLIENTES', CLI_HEAD), c = buscarCli(CT, w);
+    if (!c) agregar(CT, { 'WHATSAPP': w, 'NOMBRE': nombre, 'COMPRAS_CICLO': 0, 'COMPRAS_TOTAL': 0, 'GASTADO_TOTAL': 0, 'PREMIOS_CANJEADOS': 0,
+      'ALTA': new Date(), 'ORIGEN': limpio(b.origen).slice(0, 30) || 'Tienda' });
+    else if (nombre && !c.nombre) setCli(CT, c.fila, { 'NOMBRE': nombre });
+    return { nuevo: !c, existe: !!(c && c.compras > 0), tarjeta: tarjetaOut(c), bienvenida: c && c.bienvenida === 'PENDIENTE' ? BIENVENIDA : 0 };
+  },
   lead: function (b) {
     const w = tel(b.tel);
     if (!w) return { ok: false, error: 'Revisá el número: 10 dígitos con característica, sin el 0 ni el 15.' };
@@ -1291,7 +1301,12 @@ const PUBLICAS = {
     const yaCompro = !!(c && c.compras > 0);
     if (!c) agregar(CT, { 'WHATSAPP': w, 'NOMBRE': nombre, 'COMPRAS_CICLO': 0, 'COMPRAS_TOTAL': 0, 'GASTADO_TOTAL': 0, 'PREMIOS_CANJEADOS': 0,
       'BIENVENIDA': 'PENDIENTE', 'ALTA': new Date(), 'ORIGEN': 'Pop-up' });
-    else if (!yaCompro && !c.bienvenida) setCli(CT, c.fila, { 'BIENVENIDA': 'PENDIENTE' });
+    else {
+      const u = {};
+      if (nombre && !c.nombre) u['NOMBRE'] = nombre;
+      if (!yaCompro && !c.bienvenida) u['BIENVENIDA'] = 'PENDIENTE';
+      if (Object.keys(u).length) setCli(CT, c.fila, u);
+    }
     const cache = CacheService.getScriptCache();
     if (!cache.get('lead_' + w)) {
       agregar(hojaP(ss, 'LEADS', LEAD_HEAD), { 'FECHA': new Date(), 'WHATSAPP': w, 'NOMBRE': nombre, 'ORIGEN': limpio(b.origen).slice(0, 30) || 'pop-up', 'YA_ERA_CLIENTE': yaCompro ? 'SÍ' : 'NO' });
@@ -2884,10 +2899,24 @@ function ccBind(){
     if (w) CC.t = setTimeout(function(){ ccFetch(w); }, 350);
     saleTotals();
   });
-  $('sv-cli').addEventListener('change', function(){
+  function nombreANumero(el){
     if ($('sv-tel').value.trim() || !CC.lista) return;
-    var k = norm(this.value), c = CC.lista.filter(function(x){ return norm(x.nombre) === k; })[0];
-    if (c){ $('sv-tel').value = telF(c.tel); SALE.tel = $('sv-tel').value; ccStore(c.tel, c.tarjeta, c); ccDraw(); saleTotals(); }
+    var k = norm(el.value); if (!k) return;
+    var m = CC.lista.filter(function(x){ return x.nombre && norm(x.nombre) === k; });
+    if (m.length === 1){
+      var c = m[0];
+      $('sv-tel').value = telF(c.tel); SALE.tel = $('sv-tel').value; SALE.op = null; SALE.ccOk = false;
+      ccStore(c.tel, c.tarjeta, c); SALE.ccOk = true; ccDraw(); saleTotals();
+    } else if (m.length > 1){
+      var box = $('sv-cc'); if (box){ box.className = 'cc muted show';
+        box.innerHTML = 'Hay ' + m.length + ' clientes con ese nombre: ' + m.map(function(x){ return '<b>' + telF(x.tel) + '</b>'; }).join(' · ') + '. Escribí el número para elegir.'; }
+    }
+  }
+  $('sv-cli').addEventListener('change', function(){ nombreANumero(this); });
+  $('sv-cli').addEventListener('input', function(ev){
+    /* elegir una opción de la lista dispara 'input' sin tipeo: ahí completa el número */
+    var elegida = !ev.inputType || ev.inputType === 'insertReplacementText';
+    if (elegida) nombreANumero(this);
   });
   $('sv-cc').addEventListener('click', function(e){
     var o = e.target.closest('[data-cc]'), g = e.target.closest('[data-gift]');
@@ -2924,7 +2953,7 @@ function ccLoadList(){
     CC.lista.forEach(function(c){ ccStore(c.tel, c.tarjeta, c); });
     var dl = $('dl-clientes'), have = {};
     if (dl){ Array.prototype.forEach.call(dl.options, function(o){ have[norm(o.value)] = 1; });
-      CC.lista.forEach(function(c){ if (c.nombre && !have[norm(c.nombre)]){ var o = document.createElement('option'); o.value = tc(c.nombre); dl.appendChild(o); } }); }
+      CC.lista.forEach(function(c){ if (c.nombre && !have[norm(c.nombre)]){ var o = document.createElement('option'); o.value = tc(c.nombre); o.label = telF(c.tel); dl.appendChild(o); } }); }
     if (document.querySelector('.view.on[data-view="clientes"]')) ccView();
   }).catch(function(e){ CC.err = e.message; if (document.querySelector('.view.on[data-view="clientes"]')) ccView(); });
 }
@@ -2942,7 +2971,9 @@ function ccDraw(){
   if (!d){ box.className = 'cc muted show'; box.innerHTML = 'Buscando la CREW CARD de ' + telF(w) + '…'; return; }
   var t = d.tarjeta || { compras:0, esta:1, disponibles:[] }, c = d.cliente;
   if (c && c.nombre && !$('sv-cli').value.trim()){ $('sv-cli').value = tc(c.nombre); SALE.cliente = $('sv-cli').value; }
-  var head = c && c.compras > 0 ? '<b>' + esc(c.nombre ? tc(c.nombre) : telF(w)) + '</b> · esta es su compra n° ' + t.esta + ' del ciclo' : '<b>Cliente nuevo en la CREW CARD</b> · arranca con esta compra';
+  var head = c && c.compras > 0 ? '<b>' + esc(c.nombre ? tc(c.nombre) : telF(w)) + '</b> · esta es su compra n° ' + t.esta + ' del ciclo'
+    : c && c.nombre ? '<b>' + esc(tc(c.nombre)) + '</b> · se anotó en la tienda · arranca con esta compra'
+    : '<b>Cliente nuevo en la CREW CARD</b> · arranca con esta compra';
   var h = '<div class="cc-top"><div>' + head + '</div><div class="cc-dots" aria-label="' + t.compras + ' de 6">' + ccDots(6, t.compras, Math.min(6, t.esta)) + '</div></div>';
   var disp = t.disponibles || [];
   if (disp.length){
