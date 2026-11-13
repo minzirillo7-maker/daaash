@@ -4155,7 +4155,10 @@ function prfApplyPend(){
 function prfLoad(){
   if (PRF.loading) return;
   PRF.loading = true;
-  loadTab('PERFUMES').then(function(rows){ PRF.rows = prfParse(rows); PRF.err = ''; },
+  loadTab('PERFUMES').then(function(rows){
+      /* si la pestaña no existe, Google devuelve la primera hoja (STOCK): solo cuenta si tiene las columnas de pedidos */
+      var ok = !rows.length || rows.some(function(r){ return ('ITEMS' in r) && ('CLIENTE' in r) && ('UNIDADES' in r); });
+      PRF.rows = ok ? prfParse(rows) : []; PRF.err = ok ? '' : 'sin pestaña'; },
     function(e){ if (!PRF.rows) PRF.rows = []; PRF.err = e.message; })
   .then(function(){ PRF.loading = false; prfApplyPend(); if (VIEW === 'perfumes') vPerfumes(); });
 }
