@@ -592,6 +592,7 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
 .rep.show{display:block}
 .rep .link{white-space:normal;text-align:left}
 @media (max-width:720px){.toast{white-space:normal;width:max-content;max-width:calc(100vw - 24px);text-align:left}.cierre{grid-template-columns:repeat(2,minmax(0,1fr))}.ped{grid-template-columns:44px minmax(0,1fr) auto}.ped .pill,.ped .btn,.ped > span:empty{display:none}}
+.pf-f-wrap{overflow-x:auto;margin:0 0 12px;-webkit-overflow-scrolling:touch}.pf-f-wrap .seg{flex-wrap:nowrap}.pf-f-wrap .seg small{opacity:.6;font-weight:500;margin-left:2px}
 </style>
 </head>
 <body>
@@ -656,6 +657,7 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
       <div class="nav-group">Operación</div>
       <a href="#" data-act="venta"><svg class="icon"><use href="#i-zap"/></svg>Registrar venta</a>
       <a href="#" data-act="ingreso"><svg class="icon"><use href="#i-plus"/></svg>Cargar stock</a>
+      <a href="#perfumes" data-v="perfumes"><svg class="icon"><use href="#i-bag"/></svg>Perfumes<span class="nav-badge" id="nb-perf"></span></a>
       <a href="#catalogo" data-v="catalogo"><svg class="icon"><use href="#i-store"/></svg>Catálogo de la tienda</a>
       <a href="#compras" data-v="compras"><svg class="icon"><use href="#i-cart"/></svg>Compras / Lotes</a>
       <a href="#movimientos" data-v="movimientos"><svg class="icon"><use href="#i-list"/></svg>Movimientos</a>
@@ -771,6 +773,23 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
           </div>
         </div>
         <div class="grid"><div class="card s12 anim"><div class="card-h"><div><h2>Historial de lotes</h2><p>Todo lo que registraste en COMPRAS</p></div></div><div id="t-compras"></div></div></div>
+      </section>
+
+      <!-- ================= PERFUMES ================= -->
+      <section class="view" data-view="perfumes">
+        <div class="grid" id="pf-kpis"></div>
+        <div class="grid"><div class="card s12 anim">
+          <div class="card-h"><div><h2>Pedidos de perfumes</h2><p>Preventa y ventas · tocá un pedido para editarlo o cambiarle el estado</p></div>
+            <div class="card-tools"><button class="btn" type="button" id="pf-paste"><svg class="icon"><use href="#i-copy"/></svg>Pegar de WhatsApp</button><button class="btn btn-sell" type="button" id="pf-new"><svg class="icon"><use href="#i-plus"/></svg>Nuevo pedido</button></div></div>
+          <div id="pf-warn"></div>
+          <div class="pf-f-wrap"><div class="seg" id="pf-f"></div></div>
+          <div id="t-pf"></div>
+        </div></div>
+        <div class="grid"><div class="card s12 anim">
+          <div class="card-h"><div><h2>Para pedirle al proveedor</h2><p>Suma de los pedidos de preventa <b>pendientes</b>: lo que tenés que encargar</p></div>
+            <div class="card-tools"><button class="btn btn-sm" type="button" id="pf-copy"><svg class="icon"><use href="#i-copy"/></svg>Copiar lista</button><button class="btn btn-sm" type="button" id="pf-mark"><svg class="icon"><use href="#i-check"/></svg>Marcar como encargados</button></div></div>
+          <div id="pf-prov"></div>
+        </div></div>
       </section>
 
       <!-- ================= CALCULADORA ================= -->
@@ -968,7 +987,7 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
  * Es un proyecto INDEPENDIENTE: crealo desde script.google.com → Nuevo proyecto.
  * No lo pegues en el proyecto del catálogo (se pisan las funciones doGet).
  */
-const VERSION = 4;
+const VERSION = 5;
 const SHEET_ID = '1HmbKZprUmHFGQ0K-YvIDvF7gZfu42iUhrYvFeKk1T-Y';
 const CLAVE = '__CLAVE__';            // la pone el panel cuando copiás el código
 const CARPETA_FOTOS = 'VAPE CREW · Fotos de productos';
@@ -1301,6 +1320,72 @@ const ACCIONES = {
 };
 
 /* ------------------------------------------------------------------ */
+/* PERFUMES: pedidos de preventa y ventas (pestaña PERFUMES, una fila por pedido). v5 */
+const PERF_HEAD = ['ID', 'FECHA', 'CLIENTE', 'ZONA', 'TIPO', 'ESTADO', 'DETALLE', 'UNIDADES', 'TOTAL', 'COSTO', 'GANANCIA', 'COBRADO', 'PAGO', 'NOTAS', 'ITEMS', 'ACTUALIZADO'];
+const PERF_ESTADOS = ['PENDIENTE', 'ENCARGADO', 'LLEGO', 'ENTREGADO', 'CANCELADO'];
+function perfTabla(ss) {
+  const nueva = !ss.getSheetByName('PERFUMES');
+  const t = tabla(ss, 'PERFUMES', PERF_HEAD);
+  if (nueva) { t.sh.getRange(1, 1, 1, PERF_HEAD.length).setFontWeight('bold'); t.sh.setFrozenRows(1); t.sh.getRange('A:A').setNumberFormat('@'); }
+  return t;
+}
+function perfFila(t, id) {
+  const n = t.sh.getLastRow(), c = t.col('ID');
+  if (!id || n < 2 || c < 0) return -1;
+  const v = t.sh.getRange(2, c + 1, n - 1, 1).getDisplayValues();
+  for (let i = 0; i < v.length; i++) if (String(v[i][0]).trim() === id) return i + 2;
+  return -1;
+}
+ACCIONES.perfume_guardar = function (b, ss) {
+  const p = b.pedido || {};
+  const cliente = limpio(p.cliente);
+  if (!cliente) throw new Error('Falta el nombre del cliente');
+  const items = (p.items || []).map(function (x) {
+    const costo = (x.costo === '' || x.costo == null || !isFinite(Number(x.costo))) ? null : Math.round(Number(x.costo));
+    return { id: limpio(x.id), marca: limpio(x.marca), nombre: limpio(x.nombre), fmt: limpio(x.fmt), cant: Math.round(Number(x.cant)), precio: Math.round(Number(x.precio)), costo: costo };
+  }).filter(function (x) { return x.nombre && x.cant > 0 && isFinite(x.precio) && x.precio >= 0; });
+  if (!items.length) throw new Error('El pedido no tiene perfumes');
+  const estado = norm(p.estado) || 'PENDIENTE';
+  if (PERF_ESTADOS.indexOf(estado) < 0) throw new Error('Estado inválido: ' + p.estado);
+  let u = 0, tot = 0, costo = 0, sinCosto = false;
+  items.forEach(function (x) { u += x.cant; tot += x.cant * x.precio; if (x.costo == null) sinCosto = true; else costo += x.cant * x.costo; });
+  const t = perfTabla(ss);
+  const viejo = limpio(p.id);
+  const id = viejo || ('PF' + Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyMMddHHmmss') + Math.floor(Math.random() * 90 + 10));
+  const obj = { 'ID': id, 'FECHA': fechaDe(p.fecha), 'CLIENTE': cliente, 'ZONA': limpio(p.zona), 'TIPO': norm(p.tipo) === 'VENTA' ? 'VENTA' : 'PREVENTA', 'ESTADO': estado,
+    'DETALLE': items.map(function (x) { return x.cant + 'x ' + [x.marca, x.nombre].filter(String).join(' ') + (x.fmt ? ' (' + x.fmt + ')' : ''); }).join(' · '),
+    'UNIDADES': u, 'TOTAL': tot, 'COSTO': sinCosto ? '' : costo, 'GANANCIA': sinCosto ? '' : tot - costo,
+    'COBRADO': Math.max(0, Math.round(Number(p.cobrado) || 0)), 'PAGO': limpio(p.pago), 'NOTAS': limpio(p.notas), 'ITEMS': JSON.stringify(items), 'ACTUALIZADO': new Date() };
+  if (!viejo) { agregar(t, obj); return { id: id, nuevo: true }; }
+  if (!p.fecha) delete obj['FECHA'];   // al editar sin fecha, se queda la original
+  const f = perfFila(t, id);
+  if (f < 0) throw new Error('No encontré ese pedido en PERFUMES. ¿Lo borraste o lo cambiaste a mano? Tocá Actualizar.');
+  const fila = t.sh.getRange(f, 1, 1, t.nc).getValues()[0];
+  Object.keys(obj).forEach(function (k) { const c = t.col(k); if (c >= 0) fila[c] = obj[k]; });
+  t.sh.getRange(f, 1, 1, t.nc).setValues([fila]);
+  return { id: id, nuevo: false };
+};
+ACCIONES.perfume_estado = function (b, ss) {
+  const estado = norm(b.estado);
+  if (PERF_ESTADOS.indexOf(estado) < 0) throw new Error('Estado inválido: ' + b.estado);
+  const t = perfTabla(ss), ce = t.col('ESTADO'), ca = t.col('ACTUALIZADO');
+  let n = 0;
+  (b.ids || []).forEach(function (id) {
+    const f = perfFila(t, limpio(id)); if (f < 0) return;
+    t.sh.getRange(f, ce + 1).setValue(estado);
+    if (ca >= 0) t.sh.getRange(f, ca + 1).setValue(new Date());
+    n++;
+  });
+  return { cambiados: n };
+};
+ACCIONES.perfume_eliminar = function (b, ss) {
+  const t = perfTabla(ss), f = perfFila(t, limpio(b.id));
+  if (f < 0) throw new Error('No encontré ese pedido en PERFUMES');
+  t.sh.deleteRow(f);
+  return { id: limpio(b.id) };
+};
+
+/* ------------------------------------------------------------------ */
 function salida(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -1415,7 +1500,7 @@ function ubicarFilas(M, viejas, tz, P) {
       const r = vals[i], f = g(r, c.f);
       if (!(f instanceof Date) || isNaN(objetivo)) continue;
       if (Math.abs(pared(Utilities.formatDate(f, tz, 'yyyy-MM-dd HH:mm:ss')) - objetivo) > 2000) continue;
-      if (norm(g(r, c.t)) !== norm(v.tipo || 'VENTA')) continue;
+      if ((norm(g(r, c.t)) || 'VENTA') !== norm(v.tipo || 'VENTA')) continue;
       if (claveProd(g(r, c.p)) !== claveProd(v.producto) || norm(g(r, c.s)) !== norm(v.sabor)) continue;
       const cant = Math.round(num(g(r, c.n))); if ((isFinite(cant) && cant > 0 ? cant : 1) !== Number(v.cantidad)) continue;
       if (v.total !== null && v.total !== undefined && v.total !== '' && !(Math.abs(num(g(r, c.tot)) - Number(v.total)) < 1)) continue;
@@ -2096,9 +2181,9 @@ function prodCols(){ return { k:'prod', label:'Producto', get:function(r){ retur
    VISTAS
    ============================================================= */
 var VIEW = 'resumen';
-var TITLES = { resumen:'Resumen', catalogo:'Catálogo de la tienda', metas:'Metas semanales', ventas:'Ventas', productos:'Productos', stock:'Stock', clientes:'Clientes', web:'Web', compras:'Compras / Lotes', movimientos:'Movimientos', calculadora:'Calculadora de precio', comparar:'Comparar productos', revisar:'Revisar planilla', ajustes:'Ajustes' };
-var NOPERIOD = { catalogo:1, stock:1, revisar:1, ajustes:1, metas:1, compras:1, calculadora:1, comparar:1 };
-var SUBT = { catalogo:'Lo que ve la gente en la web · tocá un producto para editarlo', stock:'Stock actual · ritmo de venta de los últimos 30 días', revisar:'Toda la planilla', ajustes:'Configuración del panel', metas:'Últimos 7 días contra las metas de la Fase 1', compras:'Registrá cada lote que comprás', calculadora:'Precio sugerido según tu margen', comparar:'Lado a lado, con lo que conviene marcado' };
+var TITLES = { resumen:'Resumen', catalogo:'Catálogo de la tienda', metas:'Metas semanales', ventas:'Ventas', productos:'Productos', stock:'Stock', clientes:'Clientes', web:'Web', compras:'Compras / Lotes', movimientos:'Movimientos', calculadora:'Calculadora de precio', comparar:'Comparar productos', revisar:'Revisar planilla', ajustes:'Ajustes', perfumes:'Perfumes' };
+var NOPERIOD = { perfumes:1, catalogo:1, stock:1, revisar:1, ajustes:1, metas:1, compras:1, calculadora:1, comparar:1 };
+var SUBT = { perfumes:'Pedidos de preventa y ventas de perfumes', catalogo:'Lo que ve la gente en la web · tocá un producto para editarlo', stock:'Stock actual · ritmo de venta de los últimos 30 días', revisar:'Toda la planilla', ajustes:'Configuración del panel', metas:'Últimos 7 días contra las metas de la Fase 1', compras:'Registrá cada lote que comprás', calculadora:'Precio sugerido según tu margen', comparar:'Lado a lado, con lo que conviene marcado' };
 
 function render(){
   var R = range();
@@ -2112,7 +2197,7 @@ function render(){
   $('pn').textContent = NOPERIOD[VIEW] ? SUBT[VIEW]
     : R.label + ' · ' + (VIEW === 'web' ? intf(DATA.events.filter(function(e){ return e.ev === 'sesion' && inR(e.d, R.from, R.to); }).length) + ' sesiones' : intf(V.length) + ' ' + plural(V.length, 'venta', 'ventas'));
   badges();
-  ({ resumen:vResumen, catalogo:vCatalogo, metas:vMetas, ventas:vVentas, productos:vProductos, stock:vStock, clientes:vClientes, web:vWeb, compras:vCompras, movimientos:vMov, calculadora:vCalc, comparar:vComp, revisar:vRevisar, ajustes:function(){} })[VIEW](R, V);
+  ({ resumen:vResumen, catalogo:vCatalogo, metas:vMetas, ventas:vVentas, productos:vProductos, stock:vStock, clientes:vClientes, web:vWeb, compras:vCompras, movimientos:vMov, calculadora:vCalc, comparar:vComp, revisar:vRevisar, ajustes:function(){}, perfumes:vPerfumes })[VIEW](R, V);
 }
 function badges(){
   var urg = DATA.stock.filter(function(p){ return p.sold30 > 0 && p.state !== 'ok'; }).length;
@@ -2663,7 +2748,7 @@ function go(){
   VIEW = v;
   document.querySelectorAll('.view').forEach(function(s){ var on = s.getAttribute('data-view') === v; s.classList.toggle('on', on); if (on) stagger(s); });
   document.querySelectorAll('#nav a, #bottom-nav a').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-v') === v); });
-  $('bn-more').classList.toggle('on', ['metas','ventas','productos','clientes','web','compras','movimientos','calculadora','comparar','revisar','ajustes'].indexOf(v) !== -1);
+  $('bn-more').classList.toggle('on', ['metas','ventas','productos','clientes','web','compras','movimientos','calculadora','comparar','revisar','ajustes','perfumes'].indexOf(v) !== -1);
   closeMenu();
   window.scrollTo(0, 0);
   render();
@@ -4025,6 +4110,327 @@ var rz, lastW = window.innerWidth;
 window.addEventListener('resize', function(){ clearTimeout(rz); rz = setTimeout(function(){ if (Math.abs(window.innerWidth - lastW) < 40) return; lastW = window.innerWidth; if (DATA && ['resumen','ventas','clientes','web'].indexOf(VIEW) !== -1) render(); }, 250); });
 document.addEventListener('visibilitychange', function(){ if (!document.hidden && Date.now() - lastOk > 30000) load(); });
 setInterval(ago, 10000);
+/* =============================================================
+   PERFUMES · pedidos de preventa y ventas (pestaña PERFUMES)
+   Una fila por pedido. El script ADMIN (v5) escribe con
+   perfume_guardar / perfume_estado / perfume_eliminar.
+   ============================================================= */
+var PERF_IMG = 'https://vapecrew.vercel.app/preventa-perfumes/img/';
+var PERF_CAT = [{"id":"maison-alhambra-dark-door-sport-edp-100-ml","cat":"h-frescos","marca":"Maison Alhambra","nombre":"Dark Door Sport","fmt":"EDP 100 ml","precio":29000,"costo":21572},{"id":"armaf-odyssey-limoni-fresh-edition-edp-100-ml","cat":"h-frescos","marca":"Armaf","nombre":"Odyssey Limoni Fresh Edition","fmt":"EDP 100 ml","precio":35000,"costo":26261},{"id":"lattafa-asad-zanzibar-edp-100-ml","cat":"h-frescos","marca":"Lattafa","nombre":"Asad Zanzibar","fmt":"EDP 100 ml","precio":40000,"costo":30013},{"id":"armaf-odyssey-mandarin-sky-edp-100-ml","cat":"h-frescos","marca":"Armaf","nombre":"Odyssey Mandarin Sky","fmt":"EDP 100 ml","precio":45500,"costo":34140},{"id":"armaf-club-de-nuit-milestone-edp-105-ml","cat":"h-frescos","marca":"Armaf","nombre":"Club de Nuit Milestone","fmt":"EDP 105 ml","precio":52500,"costo":39392},{"id":"rasasi-hawas-malibu-edp-100-ml","cat":"h-frescos","marca":"Rasasi","nombre":"Hawas Malibu","fmt":"EDP 100 ml","precio":55000,"costo":41268},{"id":"rasasi-hawas-tropical-edp-100-ml","cat":"h-frescos","marca":"Rasasi","nombre":"Hawas Tropical","fmt":"EDP 100 ml","precio":61000,"costo":45770},{"id":"rasasi-hawas-ice-edp-100-ml","cat":"h-frescos","marca":"Rasasi","nombre":"Hawas Ice","fmt":"EDP 100 ml","precio":61500,"costo":45957},{"id":"rasasi-hawas-atlantis-edp-100-ml","cat":"h-frescos","marca":"Rasasi","nombre":"Hawas Atlantis","fmt":"EDP 100 ml","precio":62500,"costo":46895},{"id":"afnan-9am-dive-edp-150-ml","cat":"h-frescos","marca":"Afnan","nombre":"9AM Dive","fmt":"EDP 150 ml","precio":62500,"costo":49709},{"id":"rasasi-hawas-verde-edp-100-ml","cat":"h-frescos","marca":"Rasasi","nombre":"Hawas Verde","fmt":"EDP 100 ml","precio":73000,"costo":58150},{"id":"al-wataniah-bareeq-al-dhahab-edp-100-ml","cat":"h-noche","marca":"Al Wataniah","nombre":"Bareeq Al Dhahab","fmt":"EDP 100 ml","precio":37500,"costo":28137},{"id":"armaf-odyssey-homme-black-edp-100-ml","cat":"h-noche","marca":"Armaf","nombre":"Odyssey Homme (Black)","fmt":"EDP 100 ml","precio":41500,"costo":30951},{"id":"lattafa-badee-al-oud-amethyst-edp-100-ml","cat":"h-noche","marca":"Lattafa","nombre":"Badee Al Oud Amethyst","fmt":"EDP 100 ml","precio":43000,"costo":32264},{"id":"lattafa-badee-al-oud-honor-glory-edp-100-ml","cat":"h-noche","marca":"Lattafa","nombre":"Badee Al Oud Honor & Glory","fmt":"EDP 100 ml","precio":46000,"costo":34215},{"id":"rasasi-hawas-elixir-edp-100-ml","cat":"h-noche","marca":"Rasasi","nombre":"Hawas Elixir","fmt":"EDP 100 ml","precio":47500,"costo":35640},{"id":"lattafa-khamrah-dukhan-edp-100-ml","cat":"h-noche","marca":"Lattafa","nombre":"Khamrah Dukhan","fmt":"EDP 100 ml","precio":48500,"costo":36391},{"id":"lattafa-khamrah-qahwa-edp-100-ml","cat":"h-noche","marca":"Lattafa","nombre":"Khamrah Qahwa","fmt":"EDP 100 ml","precio":49000,"costo":36484},{"id":"afnan-9pm-black-edp-100-ml","cat":"h-noche","marca":"Afnan","nombre":"9PM (Black)","fmt":"EDP 100 ml","precio":50000,"costo":37516},{"id":"lattafa-asad-black-edp-100-ml","cat":"h-noche","marca":"Lattafa","nombre":"Asad (Black)","fmt":"EDP 100 ml","precio":51500,"costo":38454},{"id":"armaf-club-de-nuit-intense-man-edt-105-ml","cat":"h-noche","marca":"Armaf","nombre":"Club de Nuit Intense Man","fmt":"EDT 105 ml","precio":57500,"costo":43143},{"id":"rasasi-hawas-kobra-edp-100-ml","cat":"h-noche","marca":"Rasasi","nombre":"Hawas Kobra","fmt":"EDP 100 ml","precio":57500,"costo":42956},{"id":"french-avenue-vulcan-baie-edp-100-ml","cat":"h-noche","marca":"French Avenue","nombre":"Vulcan Baie","fmt":"EDP 100 ml","precio":57500,"costo":43143},{"id":"armaf-club-de-nuit-lionheart-edp-100-ml","cat":"h-noche","marca":"Armaf","nombre":"Club de Nuit Lionheart","fmt":"EDP 100 ml","precio":61000,"costo":45770},{"id":"lattafa-asad-elixir-edp-100-ml","cat":"h-noche","marca":"Lattafa","nombre":"Asad Elixir","fmt":"EDP 100 ml","precio":62000,"costo":46520},{"id":"rasasi-hawas-london-edp-100-ml","cat":"h-noche","marca":"Rasasi","nombre":"Hawas London","fmt":"EDP 100 ml","precio":62500,"costo":48583},{"id":"armaf-club-de-nuit-urban-man-elixir-edp-105-ml","cat":"h-noche","marca":"Armaf","nombre":"Club de Nuit Urban Man Elixir","fmt":"EDP 105 ml","precio":63500,"costo":50647},{"id":"lattafa-asad-bourbon-edp-100-ml","cat":"h-noche","marca":"Lattafa","nombre":"Asad Bourbon","fmt":"EDP 100 ml","precio":63500,"costo":50647},{"id":"al-haramain-amber-oud-gold-edition-edp-60-ml","cat":"h-noche","marca":"Al Haramain","nombre":"Amber Oud Gold Edition","fmt":"EDP 60 ml","precio":63500,"costo":50647},{"id":"afnan-9pm-elixir-parfum-intense-parfum-100-ml","cat":"h-noche","marca":"Afnan","nombre":"9PM Elixir Parfum Intense","fmt":"PARFUM 100 ml","precio":66000,"costo":52522},{"id":"french-avenue-vulcan-feu-edp-100-ml","cat":"h-noche","marca":"French Avenue","nombre":"Vulcan Feu","fmt":"EDP 100 ml","precio":67500,"costo":53929},{"id":"rasasi-hawas-black-edp-100-ml","cat":"h-noche","marca":"Rasasi","nombre":"Hawas Black","fmt":"EDP 100 ml","precio":68000,"costo":54398},{"id":"french-avenue-liquid-brun-edp-100-ml","cat":"h-noche","marca":"French Avenue","nombre":"Liquid Brun","fmt":"EDP 100 ml","precio":70500,"costo":56274},{"id":"afnan-supremacy-not-only-intense-edp-100-ml","cat":"h-noche","marca":"Afnan","nombre":"Supremacy Not Only Intense","fmt":"EDP 100 ml","precio":74000,"costo":59088},{"id":"afnan-9pm-night-out-extrait-100-ml","cat":"h-noche","marca":"Afnan","nombre":"9PM Night Out","fmt":"EXTRAIT 100 ml","precio":84500,"costo":67529},{"id":"armaf-club-de-nuit-intense-man-edp-200-ml","cat":"h-noche","marca":"Armaf","nombre":"Club de Nuit Intense Man","fmt":"EDP 200 ml","precio":91500,"costo":73156},{"id":"lattafa-fakhar-black-edp-100-ml","cat":"h-dia","marca":"Lattafa","nombre":"Fakhar Black","fmt":"EDP 100 ml","precio":45000,"costo":33577},{"id":"rasasi-hawas-for-him-edp-100-ml","cat":"h-dia","marca":"Rasasi","nombre":"Hawas for Him","fmt":"EDP 100 ml","precio":45000,"costo":33764},{"id":"lattafa-maahir-gold-edp-100-ml","cat":"h-dia","marca":"Lattafa","nombre":"Maahir (Gold)","fmt":"EDP 100 ml","precio":48500,"costo":36409},{"id":"armaf-club-de-nuit-urban-man-edp-105-ml","cat":"h-dia","marca":"Armaf","nombre":"Club de Nuit Urban Man","fmt":"EDP 105 ml","precio":49000,"costo":36578},{"id":"lattafa-maahir-honor-edp-100-ml","cat":"h-dia","marca":"Lattafa","nombre":"Maahir Honor","fmt":"EDP 100 ml","precio":49000,"costo":36578},{"id":"maison-alhambra-salvo-edp-100-ml","cat":"h-dia","marca":"Maison Alhambra","nombre":"Salvo","fmt":"EDP 100 ml","precio":50000,"costo":37328},{"id":"lattafa-the-kingdom-edp-100-ml","cat":"h-dia","marca":"Lattafa","nombre":"The Kingdom","fmt":"EDP 100 ml","precio":52500,"costo":39392},{"id":"armaf-odyssey-homme-white-edition-edp-100-ml","cat":"h-dia","marca":"Armaf","nombre":"Odyssey Homme White Edition","fmt":"EDP 100 ml","precio":55000,"costo":41268},{"id":"armaf-club-de-nuit-sillage-edp-105-ml","cat":"h-dia","marca":"Armaf","nombre":"Club de Nuit Sillage","fmt":"EDP 105 ml","precio":59000,"costo":44081},{"id":"afnan-turathi-electric-edp-90-ml","cat":"h-dia","marca":"Afnan","nombre":"Turathi Electric","fmt":"EDP 90 ml","precio":62500,"costo":46895},{"id":"al-haramain-l-aventure-edp-100-ml","cat":"h-dia","marca":"Al Haramain","nombre":"L'Aventure","fmt":"EDP 100 ml","precio":62500,"costo":46707},{"id":"armaf-club-de-nuit-iconic-blue-edp-105-ml","cat":"h-dia","marca":"Armaf","nombre":"Club de Nuit Iconic (Blue)","fmt":"EDP 105 ml","precio":63500,"costo":50647},{"id":"afnan-supremacy-in-heaven-edp-100-ml","cat":"h-dia","marca":"Afnan","nombre":"Supremacy In Heaven","fmt":"EDP 100 ml","precio":68000,"costo":54398},{"id":"al-haramain-amber-oud-aqua-dubai-extrait-75-ml","cat":"h-dia","marca":"Al Haramain","nombre":"Amber Oud Aqua Dubai","fmt":"EXTRAIT 75 ml","precio":83500,"costo":66591},{"id":"rasasi-hawas-for-her-edp-100-ml","cat":"m-arabes","marca":"Rasasi","nombre":"Hawas for Her","fmt":"EDP 100 ml","precio":37500,"costo":null},{"id":"lattafa-yara-tous-edp-100-ml","cat":"m-arabes","marca":"Lattafa","nombre":"Yara Tous","fmt":"EDP 100 ml","precio":41500,"costo":null},{"id":"armaf-club-de-nuit-intense-woman-edp-105-ml","cat":"m-arabes","marca":"Armaf","nombre":"Club de Nuit Intense Woman","fmt":"EDP 105 ml","precio":45000,"costo":null},{"id":"maison-alhambra-delilah-blanc-edp-100-ml","cat":"m-arabes","marca":"Maison Alhambra","nombre":"Delilah Blanc","fmt":"EDP 100 ml","precio":52500,"costo":null},{"id":"lattafa-yara-edp-100-ml","cat":"m-arabes","marca":"Lattafa","nombre":"Yara","fmt":"EDP 100 ml","precio":55000,"costo":null},{"id":"lattafa-eclaire-banoffi-edp-100-ml","cat":"m-arabes","marca":"Lattafa","nombre":"Eclaire Banoffi","fmt":"EDP 100 ml","precio":61500,"costo":null},{"id":"armaf-club-de-nuit-woman-edp-105-ml","cat":"m-arabes","marca":"Armaf","nombre":"Club de Nuit Woman","fmt":"EDP 105 ml","precio":61500,"costo":null},{"id":"lattafa-yara-elixir-edp-100-ml","cat":"m-arabes","marca":"Lattafa","nombre":"Yara Elixir","fmt":"EDP 100 ml","precio":62000,"costo":null},{"id":"lattafa-khamrah-waha-unisex-edp-100-ml","cat":"m-arabes","marca":"Lattafa","nombre":"Khamrah Waha (unisex)","fmt":"EDP 100 ml","precio":62500,"costo":null},{"id":"armaf-club-de-nuit-imperiale-edp-105-ml","cat":"m-arabes","marca":"Armaf","nombre":"Club de Nuit Imperiale","fmt":"EDP 105 ml","precio":62500,"costo":null},{"id":"versace-bright-crystal-edt-90-ml","cat":"m-disenador","marca":"Versace","nombre":"Bright Crystal","fmt":"EDT 90 ml","precio":122000,"costo":null},{"id":"paco-rabanne-lady-million-edp-80-ml","cat":"m-disenador","marca":"Paco Rabanne","nombre":"Lady Million","fmt":"EDP 80 ml","precio":139500,"costo":null},{"id":"paco-rabanne-olympea-edp-80-ml","cat":"m-disenador","marca":"Paco Rabanne","nombre":"Olympéa","fmt":"EDP 80 ml","precio":148500,"costo":null},{"id":"carolina-herrera-212-vip-rose-edp-80-ml","cat":"m-disenador","marca":"Carolina Herrera","nombre":"212 VIP Rosé","fmt":"EDP 80 ml","precio":155000,"costo":null},{"id":"jean-paul-gaultier-scandal-edp-80-ml","cat":"m-disenador","marca":"Jean Paul Gaultier","nombre":"Scandal","fmt":"EDP 80 ml","precio":160500,"costo":null},{"id":"lancome-la-vie-est-belle-edp-100-ml","cat":"m-disenador","marca":"Lancôme","nombre":"La Vie Est Belle","fmt":"EDP 100 ml","precio":166500,"costo":null},{"id":"carolina-herrera-good-girl-edp-80-ml","cat":"m-disenador","marca":"Carolina Herrera","nombre":"Good Girl","fmt":"EDP 80 ml","precio":173000,"costo":null},{"id":"yves-saint-laurent-libre-edp-90-ml","cat":"m-disenador","marca":"Yves Saint Laurent","nombre":"Libre","fmt":"EDP 90 ml","precio":255000,"costo":null},{"id":"azzaro-the-most-wanted-edt-intense-edt-100-ml","cat":"h-disenador","marca":"Azzaro","nombre":"The Most Wanted EDT Intense","fmt":"EDT 100 ml","precio":117500,"costo":null},{"id":"azzaro-wanted-edp-100-ml","cat":"h-disenador","marca":"Azzaro","nombre":"Wanted","fmt":"EDP 100 ml","precio":124000,"costo":null},{"id":"versace-eros-edt-100-ml","cat":"h-disenador","marca":"Versace","nombre":"Eros","fmt":"EDT 100 ml","precio":124000,"costo":null},{"id":"carolina-herrera-212-men-nyc-edt-100-ml","cat":"h-disenador","marca":"Carolina Herrera","nombre":"212 Men NYC","fmt":"EDT 100 ml","precio":126500,"costo":null},{"id":"dolce-gabbana-the-one-edt-150-ml","cat":"h-disenador","marca":"Dolce & Gabbana","nombre":"The One","fmt":"EDT 150 ml","precio":128500,"costo":null},{"id":"jean-paul-gaultier-le-male-edt-125-ml","cat":"h-disenador","marca":"Jean Paul Gaultier","nombre":"Le Male","fmt":"EDT 125 ml","precio":137500,"costo":null},{"id":"azzaro-the-most-wanted-edp-intense-edp-100-ml","cat":"h-disenador","marca":"Azzaro","nombre":"The Most Wanted EDP Intense","fmt":"EDP 100 ml","precio":139500,"costo":null},{"id":"carolina-herrera-212-vip-black-edp-100-ml","cat":"h-disenador","marca":"Carolina Herrera","nombre":"212 VIP Black","fmt":"EDP 100 ml","precio":141500,"costo":null},{"id":"giorgio-armani-acqua-di-gio-profondo-edp-100-ml","cat":"h-disenador","marca":"Giorgio Armani","nombre":"Acqua di Giò Profondo","fmt":"EDP 100 ml","precio":168500,"costo":null},{"id":"emporio-armani-stronger-with-you-intensely-edp-100-ml","cat":"h-disenador","marca":"Emporio Armani","nombre":"Stronger With You Intensely","fmt":"EDP 100 ml","precio":175000,"costo":null},{"id":"paco-rabanne-invictus-victory-elixir-parfum-100-ml","cat":"h-disenador","marca":"Paco Rabanne","nombre":"Invictus Victory Elixir","fmt":"PARFUM 100 ml","precio":188500,"costo":null},{"id":"dior-sauvage-edt-100-ml","cat":"h-disenador","marca":"Dior","nombre":"Sauvage","fmt":"EDT 100 ml","precio":204000,"costo":null},{"id":"giorgio-armani-acqua-di-gio-edt-100-ml","cat":"h-disenador","marca":"Giorgio Armani","nombre":"Acqua di Giò","fmt":"EDT 100 ml","precio":126500,"costo":106921},{"id":"paco-rabanne-one-million-edt-100-ml","cat":"h-disenador","marca":"Paco Rabanne","nombre":"One Million","fmt":"EDT 100 ml","precio":117500,"costo":99417}];
+var PERF_CATS = { 'm-arabes':'Mujer · Árabes', 'm-disenador':'Mujer · Diseñador', 'h-frescos':'Hombre · Frescos', 'h-noche':'Hombre · Noche', 'h-dia':'Hombre · Día', 'h-disenador':'Hombre · Diseñador' };
+var PERF_EST = {
+  PENDIENTE:{ l:'Pendiente', c:'p-new', n:'Falta encargarlo al proveedor' },
+  ENCARGADO:{ l:'Encargado', c:'p-low', n:'Ya se lo pediste al proveedor' },
+  LLEGO:{ l:'Llegó', c:'p-ok', n:'Está en tus manos, falta entregar' },
+  ENTREGADO:{ l:'Entregado', c:'p-gray', n:'Listo' },
+  CANCELADO:{ l:'Cancelado', c:'p-out', n:'No cuenta en los totales' }
+};
+var PF = { rows:null, err:'', loading:false, f:'activos', pend:{}, ver:null };
+var PFO = null;   // pedido que se está cargando / editando
+
+function pfById(id){ for (var i = 0; i < PERF_CAT.length; i++) if (PERF_CAT[i].id === id) return PERF_CAT[i]; return null; }
+function pfImg(id, w){ return id && pfById(id) ? imgTag(PERF_IMG + id + '.jpg', w) : imgTag('', w); }
+function pfName(x){ return [x.marca, x.nombre].filter(Boolean).join(' ') + (x.fmt ? ' (' + x.fmt + ')' : ''); }
+function pfParse(rows){
+  return rows.map(function(r){
+    var items = [];
+    try{ items = JSON.parse(str(r.ITEMS) || '[]') || []; }catch(e){ items = []; }
+    return { id:str(r.ID).trim(), d:date(r.FECHA), cliente:str(r.CLIENTE).trim(), zona:str(r.ZONA).trim(), tipo:norm(str(r.TIPO)) === 'VENTA' ? 'VENTA' : 'PREVENTA',
+      estado:PERF_EST[norm(str(r.ESTADO))] ? norm(str(r.ESTADO)) : 'PENDIENTE', items:items, u:num(r.UNIDADES) || 0, total:num(r.TOTAL) || 0,
+      costo:num(r.COSTO), gan:num(r.GANANCIA), cobrado:num(r.COBRADO) || 0, pago:str(r.PAGO).trim(), notas:str(r.NOTAS).trim(), detalle:str(r.DETALLE).trim() };
+  }).filter(function(p){ return p.id; });
+}
+/* lo recién guardado se ve al instante aunque la planilla tarde en devolverlo */
+function pfApplyPend(){
+  if (!PF.rows) return;
+  var now = Date.now();
+  Object.keys(PF.pend).forEach(function(id){
+    var e = PF.pend[id];
+    if (now - e.t > 120000){ delete PF.pend[id]; return; }
+    var i = -1; PF.rows.forEach(function(r, k){ if (r.id === id) i = k; });
+    if (e.del){ if (i >= 0) PF.rows.splice(i, 1); return; }
+    if (i >= 0) PF.rows[i] = e.row; else PF.rows.push(e.row);
+  });
+}
+function pfLoad(){
+  if (PF.loading) return;
+  PF.loading = true;
+  loadTab('PERFUMES').then(function(rows){ PF.rows = pfParse(rows); PF.err = ''; },
+    function(e){ if (!PF.rows) PF.rows = []; PF.err = e.message; })
+  .then(function(){ PF.loading = false; pfApplyPend(); if (VIEW === 'perfumes') vPerfumes(); });
+}
+function pfVersion(){
+  if (PF.ver != null || !admOk()) return;
+  PF.ver = 0;
+  fetch(ADM.url + (ADM.url.indexOf('?') < 0 ? '?' : '&') + 't=' + Date.now()).then(function(r){ return r.text(); })
+    .then(function(t){ var j = JSON.parse(t); PF.ver = Number(j.version) || 0; if (VIEW === 'perfumes') vPerfumes(); })
+    .catch(function(){ PF.ver = null; });
+}
+function pfCalc(lines){
+  var u = 0, tot = 0, costo = 0, sin = false;
+  lines.forEach(function(l){ var c = Math.max(0, Math.round(l.cant) || 0), p = Math.max(0, Math.round(l.precio) || 0); u += c; tot += c * p; if (l.costo == null || !isFinite(l.costo)) sin = true; else costo += c * l.costo; });
+  return { u:u, total:tot, costo:sin ? NaN : costo, gan:sin ? NaN : tot - costo };
+}
+function pfEnc(p){ return p.estado === 'PENDIENTE' && p.tipo !== 'VENTA'; }
+function pfActive(p){ return p.estado !== 'ENTREGADO' && p.estado !== 'CANCELADO'; }
+
+/* ---------- vista ---------- */
+function vPerfumes(){
+  if (PF.rows === null){ if (!PF.loading) pfLoad(); $('pf-kpis').innerHTML = '<div class="card s12"><div class="skel" style="height:90px"></div></div>'; return; }
+  pfVersion();
+  var R = PF.rows, ok = R.filter(function(p){ return p.estado !== 'CANCELADO'; });
+  var act = R.filter(pfActive), pend = R.filter(pfEnc);
+  var aEnc = pend.reduce(function(s, p){ return s + p.u; }, 0);
+  var fact = ok.reduce(function(s, p){ return s + p.total; }, 0);
+  var gan = ok.reduce(function(s, p){ return s + (isFinite(p.gan) ? p.gan : 0); }, 0), sinG = ok.filter(function(p){ return !isFinite(p.gan); }).length;
+  var cob = ok.reduce(function(s, p){ return s + Math.max(0, p.total - p.cobrado); }, 0);
+  kpiRow($('pf-kpis'), [
+    { id:'pf1', label:'Pedidos activos', icon:'bag', val:act.length, fmt:intf, note:R.length + ' en total' },
+    { id:'pf2', label:'Perfumes a encargar', icon:'box', val:aEnc, fmt:intf, note:pend.length + ' ' + plural(pend.length, 'pedido pendiente', 'pedidos pendientes') },
+    { id:'pf3', label:'Facturación', icon:'money', val:fact, fmt:moneyS, note:'ganancia estimada ' + money(gan) + (sinG ? ' (' + sinG + ' sin costo)' : '') },
+    { id:'pf4', label:'Falta cobrar', icon:'receipt', val:cob, fmt:moneyS, note:'de pedidos no cancelados' }
+  ], 's3');
+  var warn = '';
+  if (admOk() && PF.ver != null && PF.ver > 0 && PF.ver < 5) warn = '<div class="note" style="margin:0 0 12px"><b>Falta actualizar el script a la versión 5</b> para guardar pedidos de perfumes (hoy tenés la ' + PF.ver + '). En <a class="link" href="#ajustes">Ajustes → Conexión</a>:' + FIX_VERSION + '</div>';
+  if (!admOk()) warn = '<div class="note" style="margin:0 0 12px">Para guardar pedidos, primero conectá el panel en <a class="link" href="#ajustes">Ajustes → Conexión</a>.</div>';
+  if (PF.err && !R.length) warn += '<div class="note" style="margin:0 0 12px">Todavía no hay pedidos de perfumes. La pestaña <b>PERFUMES</b> se crea sola en la planilla con el primero que guardes.</div>';
+  $('pf-warn').innerHTML = warn;
+  var F = { activos:pfActive, PENDIENTE:0, ENCARGADO:0, LLEGO:0, ENTREGADO:0, CANCELADO:0, todos:function(){ return true; } };
+  var cnt = function(k){ return k === 'activos' ? act.length : k === 'todos' ? R.length : R.filter(function(p){ return p.estado === k; }).length; };
+  $('pf-f').innerHTML = [['activos','Activos'],['PENDIENTE','Pendientes'],['ENCARGADO','Encargados'],['LLEGO','Llegaron'],['ENTREGADO','Entregados'],['CANCELADO','Cancelados'],['todos','Todos']].map(function(x){
+    return '<button type="button" data-f="' + x[0] + '"' + (PF.f === x[0] ? ' class="on"' : '') + '>' + x[1] + ' <small>' + cnt(x[0]) + '</small></button>';
+  }).join('');
+  var shown = R.filter(function(p){ return typeof F[PF.f] === 'function' ? F[PF.f](p) : p.estado === PF.f; });
+  table('t-pf', [
+    { k:'cli', label:'Cliente', get:function(r){ return r.cliente + ' ' + r.zona + ' ' + r.detalle; }, fmt:function(r){ return '<div class="cell-prod"><div><b>' + esc(r.cliente || '—') + '</b><span>' + esc([r.zona, r.tipo === 'VENTA' ? 'Venta' : 'Preventa'].filter(Boolean).join(' · ')) + '</span></div></div>'; } },
+    { k:'d', label:'Fecha', get:function(r){ return r.d; }, fmt:function(r){ return r.d ? fd(r.d) : '—'; } },
+    { k:'det', label:'Perfumes', get:function(r){ return r.detalle; }, fmt:function(r){ return '<span class="sub" style="white-space:normal">' + esc(r.detalle || '—') + '</span>'; } },
+    { k:'u', label:'Un.', num:true, get:function(r){ return r.u; } },
+    { k:'total', label:'Total', num:true, cls:'strong', get:function(r){ return r.total; }, fmt:function(r){ return money(r.total); } },
+    { k:'cob', label:'Cobrado', num:true, get:function(r){ return r.cobrado; }, fmt:function(r){ return r.cobrado >= r.total && r.total > 0 ? '<span class="pill p-ok">Pagado</span>' : r.cobrado > 0 ? money(r.cobrado) : '<span class="sub">—</span>'; } },
+    { k:'est', label:'Estado', get:function(r){ return Object.keys(PERF_EST).indexOf(r.estado); }, fmt:function(r){ var e = PERF_EST[r.estado]; return '<span class="pill ' + e.c + '">' + e.l + '</span>'; } }
+  ], shown, { sort:'d', dir:'desc', search:'Buscar cliente o perfume', file:'perfumes', page:25,
+    empty:R.length ? 'No hay pedidos en este estado.' : 'Todavía no cargaste pedidos. Tocá <b>Nuevo pedido</b> o <b>Pegar de WhatsApp</b>.',
+    onRow:function(r){ pfOpen(r); } });
+  pfProv(pend);
+}
+function pfProvList(pend){
+  var m = {};
+  pend.forEach(function(p){ (p.items || []).forEach(function(x){
+    var k = x.id || norm(pfName(x));
+    m[k] = m[k] || { x:x, u:0, costo:0, sin:false, ped:0 };
+    m[k].u += Number(x.cant) || 0; m[k].ped++;
+    if (x.costo == null || !isFinite(x.costo)) m[k].sin = true; else m[k].costo += (Number(x.cant) || 0) * x.costo;
+  }); });
+  return Object.keys(m).map(function(k){ return m[k]; }).sort(function(a, b){ return b.u - a.u || pfName(a.x).localeCompare(pfName(b.x)); });
+}
+function pfProv(pend){
+  var L = pfProvList(pend), box = $('pf-prov');
+  if (!L.length){ box.innerHTML = '<div class="empty-mini">No hay pedidos pendientes. Cuando cargues pedidos en estado <b>Pendiente</b>, acá se suma lo que tenés que encargar.</div>'; return; }
+  var u = L.reduce(function(s, l){ return s + l.u; }, 0), c = L.reduce(function(s, l){ return s + l.costo; }, 0), sin = L.some(function(l){ return l.sin; });
+  box.innerHTML = '<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Perfume</th><th class="n">Unidades</th><th class="n">Pedidos</th><th class="n">Costo</th></tr></thead><tbody>' +
+    L.map(function(l){ return '<tr><td><div class="cell-prod">' + pfImg(l.x.id, 64) + '<div><b>' + esc(l.x.nombre) + '</b><span>' + esc([l.x.marca, l.x.fmt].filter(Boolean).join(' · ')) + '</span></div></div></td>' +
+      '<td class="n strong">' + l.u + '</td><td class="n">' + l.ped + '</td><td class="n">' + (l.sin ? '<span class="sub">sin costo</span>' : money(l.costo)) + '</td></tr>'; }).join('') +
+    '</tbody></table></div><div class="note" style="margin:10px 0 0">Total: <b>' + u + ' ' + plural(u, 'perfume', 'perfumes') + '</b>' + (c ? ' · costo estimado <b>' + money(c) + '</b>' + (sin ? ' (sin contar los que no tienen costo)' : '') : '') + '</div>';
+}
+function pfCopyProv(){
+  var pend = (PF.rows || []).filter(pfEnc), L = pfProvList(pend);
+  if (!L.length){ toast('No hay pedidos pendientes'); return; }
+  var txt = 'PEDIDO PERFUMES · V4PE CREW · ' + fd(new Date()) + '\n' + L.map(function(l){ return '- ' + l.u + 'x ' + pfName(l.x); }).join('\n') +
+    '\nTotal: ' + L.reduce(function(s, l){ return s + l.u; }, 0) + ' unidades';
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function(){ toast('Lista copiada: pegala en WhatsApp'); }, function(){ window.prompt('Copiá la lista:', txt); });
+}
+function pfMark(){
+  var pend = (PF.rows || []).filter(pfEnc);
+  if (!pend.length){ toast('No hay pedidos de preventa pendientes'); return; }
+  if (!window.confirm('¿Marcar los ' + pend.length + ' pedidos pendientes como "Encargado"? Hacelo cuando ya le mandaste la lista al proveedor.')) return;
+  var b = $('pf-mark'); b.disabled = true;
+  api('perfume_estado', { ids:pend.map(function(p){ return p.id; }), estado:'ENCARGADO' }).then(function(r){
+    pend.forEach(function(p){ var n = Object.assign({}, p, { estado:'ENCARGADO' }); PF.pend[p.id] = { t:Date.now(), row:n }; });
+    pfApplyPend(); vPerfumes(); toast((r.cambiados || pend.length) + ' pedidos marcados como encargados');
+    setTimeout(pfLoad, 4000);
+  }).catch(pfFail).then(function(){ b.disabled = false; });
+}
+function pfFail(e){
+  if (e && e.setup){ needSetup(); return; }
+  var m = String(e && e.message || e);
+  if (/desconocida/i.test(m)) m = '<b>Falta actualizar el script a la versión 5.</b> En Ajustes → Conexión:' + FIX_VERSION;
+  else m = esc(m);
+  if ($('drawer').classList.contains('open') && $('dr-err')) drErr(m); else toast(m.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 140), { ms:6000 });
+}
+
+/* ---------- cargar / editar un pedido ---------- */
+function pfOpen(r, pre){
+  var edit = !!(r && r.id);
+  PFO = edit ? { id:r.id, d:r.d || new Date(), cliente:r.cliente, zona:r.zona, tipo:r.tipo, estado:r.estado, cobrado:r.cobrado, pago:r.pago, notas:r.notas,
+                 lines:(r.items || []).map(function(x){ return { id:x.id || '', marca:x.marca || '', nombre:x.nombre || '', fmt:x.fmt || '', cant:Number(x.cant) || 1, precio:Number(x.precio) || 0, costo:x.costo == null ? null : Number(x.costo) }; }) }
+             : Object.assign({ id:'', d:new Date(), cliente:'', zona:'', tipo:'PREVENTA', estado:'PENDIENTE', cobrado:0, pago:'', notas:'', lines:[] }, pre || {});
+  var opt = function(o, v){ return Object.keys(o).map(function(k){ return '<option value="' + k + '"' + (k === v ? ' selected' : '') + '>' + o[k] + '</option>'; }).join(''); };
+  var est = {}; Object.keys(PERF_EST).forEach(function(k){ est[k] = PERF_EST[k].l; });
+  drawer({ kind:'perfume', title:edit ? 'Pedido de ' + (PFO.cliente || 'perfumes') : 'Nuevo pedido de perfumes', sub:edit ? 'Cambiá lo que necesites y guardá' : 'Se guarda en la pestaña PERFUMES',
+    body:'<div class="dr-sec dr-row"><div><label class="dr-lbl" for="pf-cli">Cliente</label><input class="in" id="pf-cli" list="dl-clientes" autocomplete="off" placeholder="Nombre" value="' + esc(PFO.cliente) + '"></div>' +
+      '<div><label class="dr-lbl" for="pf-zona">Zona</label><input class="in" id="pf-zona" placeholder="Barrio / departamento" value="' + esc(PFO.zona) + '"></div></div>' +
+      '<div class="dr-sec dr-row"><div><label class="dr-lbl" for="pf-tipo">Tipo</label><select class="in" id="pf-tipo">' + opt({ PREVENTA:'Preventa (se encarga)', VENTA:'Venta (ya lo tengo)' }, PFO.tipo) + '</select></div>' +
+      '<div><label class="dr-lbl" for="pf-est">Estado</label><select class="in" id="pf-est">' + opt(est, PFO.estado) + '</select></div></div>' +
+      '<div class="dr-sec"><label class="dr-lbl">Perfumes</label><div class="pk-search"><svg class="icon"><use href="#i-search"/></svg><input class="in" id="pf-q" type="search" placeholder="Buscá perfume o marca" autocomplete="off" enterkeyhint="search"></div>' +
+      '<ul class="pk-list" id="pf-l"></ul><button class="link" type="button" id="pf-otro" style="margin-top:10px"><svg class="icon"><use href="#i-plus"/></svg>Agregar un perfume que no está en la lista</button></div>' +
+      '<div class="dr-sec"><div class="lines" id="pf-lines"></div></div>' +
+      '<div class="dr-sec dr-row"><div><label class="dr-lbl" for="pf-cob">Cobrado ($)</label><input class="in" id="pf-cob" inputmode="numeric" placeholder="0" value="' + (PFO.cobrado ? fmtIn(PFO.cobrado) : '') + '"></div>' +
+      '<div><label class="dr-lbl" for="pf-pago">Forma de pago</label><select class="in" id="pf-pago">' + opt({ '':'—', 'Efectivo':'Efectivo', 'Transferencia':'Transferencia', 'MercadoPago':'MercadoPago' }, PFO.pago) + '</select></div></div>' +
+      '<div class="dr-sec" style="margin:-8px 0 14px"><button class="link" type="button" id="pf-todo">Marcar como pagado completo</button></div>' +
+      '<div class="dr-sec"><label class="dr-lbl" for="pf-notas">Notas</label><input class="in" id="pf-notas" placeholder="Seña, horario, regalo…" value="' + esc(PFO.notas) + '"></div>',
+    foot:'<div class="dr-err" id="dr-err"></div><div class="total-row"><span id="pf-cnt">Sin perfumes</span><b id="pf-tot">$0</b></div>' +
+      '<button class="btn btn-sell btn-lg" id="dr-go" type="button"><svg class="icon"><use href="#i-check"/></svg>' + (edit ? 'Guardar cambios' : 'Guardar pedido') + '</button>' +
+      (edit ? '<button class="link" type="button" id="pf-del" style="margin:10px auto 0;color:var(--muted)"><svg class="icon"><use href="#i-trash"/></svg>Eliminar pedido</button>' : '') });
+  var dirty = function(){ DR.dirty = true; };
+  [['pf-cli','cliente'],['pf-zona','zona'],['pf-notas','notas']].forEach(function(x){ $(x[0]).addEventListener('input', function(){ PFO[x[1]] = this.value; dirty(); }); });
+  [['pf-tipo','tipo'],['pf-est','estado'],['pf-pago','pago']].forEach(function(x){ $(x[0]).addEventListener('change', function(){ PFO[x[1]] = this.value; dirty(); }); });
+  $('pf-tipo').addEventListener('change', function(){ if (this.value === 'VENTA' && PFO.estado === 'PENDIENTE'){ PFO.estado = 'ENTREGADO'; $('pf-est').value = 'ENTREGADO'; } else if (this.value === 'PREVENTA' && PFO.estado === 'ENTREGADO' && !PFO.id){ PFO.estado = 'PENDIENTE'; $('pf-est').value = 'PENDIENTE'; } });
+  $('pf-cob').addEventListener('input', function(){ var n = moneyIn(this.value); PFO.cobrado = isFinite(n) ? n : 0; dirty(); pfTotals(); });
+  $('pf-todo').addEventListener('click', function(){ PFO.cobrado = pfCalc(PFO.lines).total; $('pf-cob').value = fmtIn(PFO.cobrado); dirty(); pfTotals(); });
+  $('pf-q').addEventListener('input', pfPick);
+  $('pf-l').addEventListener('click', function(e){
+    var li = e.target.closest('[data-id]'); if (!li) return;
+    var p = pfById(li.getAttribute('data-id')); if (!p) return;
+    var l = PFO.lines.filter(function(x){ return x.id === p.id; })[0];
+    if (l) l.cant++; else PFO.lines.push({ id:p.id, marca:p.marca, nombre:p.nombre, fmt:p.fmt, cant:1, precio:p.precio, costo:p.costo });
+    dirty(); li.classList.add('flash'); setTimeout(pfPick, 160); pfLines();
+  });
+  $('pf-otro').addEventListener('click', function(){ PFO.lines.push({ id:'', marca:'', nombre:'', fmt:'', cant:1, precio:0, costo:null }); dirty(); pfLines(); var ins = $('pf-lines').querySelectorAll('[data-a=nombre]'); if (ins.length) ins[ins.length - 1].focus(); });
+  $('pf-lines').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-a]'); if (!b) return;
+    var i = +b.closest('.line').getAttribute('data-i'), l = PFO.lines[i]; if (!l) return;
+    var a = b.getAttribute('data-a');
+    if (a === 'plus') l.cant++; if (a === 'minus') l.cant = Math.max(1, l.cant - 1); if (a === 'del') PFO.lines.splice(i, 1);
+    dirty(); pfLines(); pfPick();
+  });
+  $('pf-lines').addEventListener('input', function(e){
+    var el = e.target, a = el.getAttribute('data-a'); if (!a) return;
+    var i = +el.closest('.line').getAttribute('data-i'), l = PFO.lines[i]; if (!l) return;
+    if (a === 'cant'){ var n = intIn(el.value); if (n > 0) l.cant = n; }
+    if (a === 'precio'){ var p = moneyIn(el.value); l.precio = isFinite(p) ? p : 0; }
+    if (a === 'costo'){ var c = moneyIn(el.value); l.costo = isFinite(c) && el.value.trim() ? c : null; }
+    if (a === 'nombre') l.nombre = el.value;
+    dirty(); pfTotals();
+  });
+  $('dr-go').addEventListener('click', pfSave);
+  if (edit) $('pf-del').addEventListener('click', pfDelete);
+  pfPick(); pfLines();
+  if (!edit && !PFO.cliente) setTimeout(function(){ $('pf-cli').focus(); }, 250);
+}
+function pfPick(){
+  var q = $('pf-q'), l = $('pf-l'); if (!q || !l) return;
+  var words = norm(q.value).split(' ').filter(Boolean);
+  var list = PERF_CAT.filter(function(p){ var h = norm(p.marca + ' ' + p.nombre + ' ' + p.fmt + ' ' + PERF_CATS[p.cat]); return words.every(function(w){ return h.indexOf(w) !== -1; }); });
+  if (!words.length){
+    var top = {}; (PF.rows || []).forEach(function(r){ (r.items || []).forEach(function(x){ if (x.id) top[x.id] = (top[x.id] || 0) + (Number(x.cant) || 0); }); });
+    list = list.slice().sort(function(a, b){ return (top[b.id] || 0) - (top[a.id] || 0) || a.precio - b.precio; }).slice(0, 8);
+  }
+  l.innerHTML = list.length ? list.slice(0, 40).map(function(p){
+    var n = PFO.lines.filter(function(x){ return x.id === p.id; }).reduce(function(s, x){ return s + x.cant; }, 0);
+    return '<li class="pk-item" data-id="' + esc(p.id) + '">' + pfImg(p.id, 80) + '<div style="min-width:0"><b>' + esc(p.nombre) + '</b><span>' + esc(p.marca + ' · ' + p.fmt + ' · ' + PERF_CATS[p.cat]) + '</span></div>' +
+      '<div class="pk-r">' + money(p.precio) + (n ? '<small class="pk-n">' + n + ' en el pedido</small>' : '<small>tocá para sumar</small>') + '</div></li>';
+  }).join('') + (words.length ? '' : '<li class="empty" style="display:block">Escribí para ver los ' + PERF_CAT.length + ' perfumes.</li>')
+    : '<li class="empty" style="display:block">No encontré "' + esc(q.value) + '". Usá <b>Agregar un perfume que no está en la lista</b>.</li>';
+}
+function pfLines(){
+  var box = $('pf-lines'); if (!box) return;
+  box.innerHTML = PFO.lines.length ? PFO.lines.map(function(l, i){
+    var custom = !l.id;
+    return '<div class="line" data-i="' + i + '">' + pfImg(l.id, 88) +
+      '<div class="line-t">' + (custom ? '<input class="in" data-a="nombre" placeholder="Marca y nombre del perfume" value="' + esc(l.nombre) + '" style="min-height:36px;padding:6px 10px">'
+        : '<b>' + esc(l.nombre) + '</b><span>' + esc([l.marca, l.fmt].filter(Boolean).join(' · ')) + '</span>') + '</div>' +
+      '<button class="line-x" type="button" data-a="del" aria-label="Sacar"><svg class="icon"><use href="#i-x"/></svg></button>' +
+      '<div class="line-ctl"><div class="step"><button type="button" data-a="minus" aria-label="Menos">−</button><input data-a="cant" inputmode="numeric" value="' + l.cant + '" aria-label="Cantidad"><button type="button" data-a="plus" aria-label="Más">+</button></div>' +
+      '<label class="money-in"><span>$ c/u</span><input data-a="precio" inputmode="numeric" value="' + fmtIn(l.precio) + '" aria-label="Precio unitario"></label>' +
+      '<label class="money-in"><span>costo</span><input data-a="costo" inputmode="numeric" placeholder="—" value="' + (l.costo == null ? '' : fmtIn(l.costo)) + '" aria-label="Costo unitario"></label>' +
+      '<b class="line-tot" data-t>' + money(l.cant * l.precio) + '</b></div></div>';
+  }).join('') : '<div class="empty-mini">Buscá arriba y tocá los perfumes del pedido.</div>';
+  pfTotals();
+}
+function pfTotals(){
+  var c = pfCalc(PFO.lines);
+  PFO.lines.forEach(function(l, i){ var el = $('pf-lines').querySelector('.line[data-i="' + i + '"] [data-t]'); if (el) el.textContent = money(l.cant * l.precio); });
+  $('pf-cnt').textContent = c.u ? c.u + ' ' + plural(c.u, 'perfume', 'perfumes') + (isFinite(c.gan) ? ' · ganancia ' + money(c.gan) : ' · falta algún costo') + (PFO.cobrado ? ' · cobrado ' + money(PFO.cobrado) : '') : 'Sin perfumes';
+  $('pf-tot').textContent = money(c.total);
+}
+function pfSave(){
+  drErr('');
+  var cli = String(PFO.cliente || '').trim();
+  if (!cli){ drErr('Poné el nombre del cliente.'); $('pf-cli').focus(); return; }
+  var lines = PFO.lines.filter(function(l){ return l.cant > 0; });
+  if (!lines.length){ drErr('Sumá al menos un perfume.'); return; }
+  if (lines.some(function(l){ return !String(l.nombre || '').trim(); })){ drErr('Hay un perfume sin nombre. Escribilo o sacalo.'); return; }
+  if (lines.some(function(l){ return !(l.precio > 0); }) && !window.confirm('Hay un perfume con precio $0. ¿Guardar igual?')) return;
+  var c = pfCalc(lines);
+  var pedido = { id:PFO.id, fecha:(PFO.d || new Date()).getTime(), cliente:cli, zona:String(PFO.zona || '').trim(), tipo:PFO.tipo, estado:PFO.estado,
+    cobrado:Math.round(PFO.cobrado || 0), pago:PFO.pago, notas:String(PFO.notas || '').trim(),
+    items:lines.map(function(l){ return { id:l.id, marca:String(l.marca || '').trim(), nombre:String(l.nombre).trim(), fmt:l.fmt || '', cant:Math.round(l.cant), precio:Math.round(l.precio), costo:l.costo == null ? null : Math.round(l.costo) }; }) };
+  drBusy(true);
+  api('perfume_guardar', { pedido:pedido }, PFO.op || (PFO.op = uid())).then(function(r){
+    var row = { id:r.id, d:new Date(pedido.fecha), cliente:cli, zona:pedido.zona, tipo:pedido.tipo, estado:pedido.estado, items:pedido.items, u:c.u, total:c.total, costo:c.costo, gan:c.gan,
+      cobrado:pedido.cobrado, pago:pedido.pago, notas:pedido.notas, detalle:pedido.items.map(function(x){ return x.cant + 'x ' + pfName(x); }).join(' · ') };
+    PF.pend[r.id] = { t:Date.now(), row:row };
+    if (!PF.rows) PF.rows = [];
+    pfApplyPend();
+    drBusy(false); closeDrawer(true);
+    toast(PFO.id ? 'Pedido actualizado' : 'Pedido guardado: ' + cli + ' · ' + money(c.total));
+    PFO = null; vPerfumes(); setTimeout(pfLoad, 4000);
+  }).catch(function(e){ drBusy(false); PFO.op = null; pfFail(e); });
+}
+function pfDelete(){
+  if (!PFO || !PFO.id) return;
+  if (!window.confirm('¿Eliminar el pedido de ' + (PFO.cliente || 'este cliente') + '? Se borra la fila de la pestaña PERFUMES.')) return;
+  var id = PFO.id, b = $('pf-del'); b.disabled = true;
+  api('perfume_eliminar', { id:id }).then(function(){
+    PF.pend[id] = { t:Date.now(), del:true }; pfApplyPend();
+    closeDrawer(true); PFO = null; toast('Pedido eliminado'); vPerfumes(); setTimeout(pfLoad, 4000);
+  }).catch(function(e){ b.disabled = false; pfFail(e); });
+}
+
+/* ---------- pegar el mensaje que arma la página de preventa ---------- */
+function pfParseMsg(txt){
+  var out = { lines:[], cliente:'', zona:'', sinMatch:0 };
+  String(txt || '').split(/\n/).forEach(function(raw){
+    var s = raw.replace(/\*/g, '').trim();
+    var mm = s.match(/^[•\-·]?\s*(\d+)\s*x\s+(.+?)\s*\(([^)]+)\)\s*[—–\-]\s*\$?\s*([\d.,]+)/i);
+    if (mm){
+      var cant = parseInt(mm[1], 10), name = mm[2], fmt = mm[3], tot = moneyIn(mm[4]);
+      var key = norm(name), fk = norm(fmt);
+      var p = PERF_CAT.filter(function(c){ return norm(c.marca + ' ' + c.nombre) === key && norm(c.fmt) === fk; })[0];
+      var unit = cant > 0 && isFinite(tot) ? Math.round(tot / cant) : 0;
+      if (p) out.lines.push({ id:p.id, marca:p.marca, nombre:p.nombre, fmt:p.fmt, cant:cant, precio:unit || p.precio, costo:p.costo });
+      else { out.sinMatch++; out.lines.push({ id:'', marca:'', nombre:name + ' (' + fmt + ')', fmt:'', cant:cant, precio:unit, costo:null }); }
+      return;
+    }
+    var n = s.match(/^nombre\s*:\s*(.+)$/i); if (n) out.cliente = n[1].trim();
+    var z = s.match(/^zona\s*:\s*(.+)$/i); if (z) out.zona = z[1].trim();
+  });
+  return out;
+}
+function pfPaste(){
+  drawer({ kind:'perfume-pegar', title:'Pegar pedido de WhatsApp', sub:'El mensaje que llega desde la página de preventa',
+    body:'<div class="dr-sec"><label class="dr-lbl" for="pf-msg">Mensaje</label><textarea class="in" id="pf-msg" rows="10" placeholder="Hola! Quiero encargar de la preventa de perfumes:&#10;• 2x Lattafa Yara (EDP 100 ml) — $110.000&#10;…" style="min-height:220px;font-family:inherit"></textarea></div>' +
+      '<div class="note" style="margin:0">Copiá el mensaje completo del chat y pegalo acá. El panel reconoce los perfumes, las cantidades, el nombre y la zona, y te abre el pedido para revisarlo antes de guardar.</div>',
+    foot:'<div class="dr-err" id="dr-err"></div><button class="btn btn-sell btn-lg" id="dr-go" type="button"><svg class="icon"><use href="#i-check"/></svg>Leer pedido</button>' });
+  setTimeout(function(){ $('pf-msg').focus(); }, 250);
+  $('dr-go').addEventListener('click', function(){
+    var r = pfParseMsg($('pf-msg').value);
+    if (!r.lines.length){ drErr('No encontré perfumes en el mensaje. Tiene que tener líneas como <b>• 2x Lattafa Yara (EDP 100 ml) — $110.000</b>.'); return; }
+    closeDrawer(true);
+    pfOpen(null, { cliente:r.cliente, zona:r.zona, lines:r.lines });
+    DR.dirty = true;
+    if (r.sinMatch) toast(r.sinMatch + ' ' + plural(r.sinMatch, 'perfume no está', 'perfumes no están') + ' en la lista: revisá el nombre', { ms:4500 });
+  });
+}
+
+$('pf-new').addEventListener('click', function(){ pfOpen(null); });
+$('pf-paste').addEventListener('click', pfPaste);
+$('pf-copy').addEventListener('click', pfCopyProv);
+$('pf-mark').addEventListener('click', pfMark);
+$('pf-f').addEventListener('click', function(e){ var b = e.target.closest('[data-f]'); if (!b) return; PF.f = b.getAttribute('data-f'); vPerfumes(); });
+$('refresh').addEventListener('click', function(){ if (VIEW === 'perfumes') pfLoad(); });
+
 fromCache(); go(); load(); schedule();
 </script>
 </body>
