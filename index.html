@@ -1795,6 +1795,8 @@ ACCIONES.consig_eliminar = function (b, ss) {
 /* ASISTENTE IA (Gemini). La clave de Gemini queda guardada en las propiedades de este script,
    nunca en el panel ni en la planilla. El panel manda la conversación y un resumen de los datos;
    el script solo se lo pasa a Gemini y devuelve la respuesta. No escribe nada en la planilla. v6 */
+/* Para dar el permiso de Gemini: elegí esta función en el editor y tocá Ejecutar (una sola vez) */
+function autorizarIA() { UrlFetchApp.fetch('https://www.google.com/generate_204', { muteHttpExceptions: true }); return 'Listo: el script ya puede hablar con Gemini'; }
 const IA_MODELOS = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
 ACCIONES.ia = function () { return {}; };   // se atiende antes, en doPost (sin trabar la planilla)
 ACCIONES.ia_clave = function (b) {
