@@ -15,7 +15,7 @@
 /* ============================================================
    VAPE CREW — PANEL DE ADMINISTRACIÓN
    Lee la planilla "CLAUDE CATALOGO" en vivo (pestañas STOCK,
-   MOVIMIENTOS y EVENTOS). No escribe nada en la planilla.
+   MOVIMIENTOS y EVENTOS) y escribe con el script ADMIN.
    ============================================================ */
 :root{
   --blue:#040BE7; --blue-2:#3A40EE; --blue-3:#8A8EF5; --blue-4:#C9CBFA;
@@ -593,6 +593,141 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
 .rep .link{white-space:normal;text-align:left}
 @media (max-width:720px){.toast{white-space:normal;width:max-content;max-width:calc(100vw - 24px);text-align:left}.cierre{grid-template-columns:repeat(2,minmax(0,1fr))}.ped{grid-template-columns:44px minmax(0,1fr) auto}.ped .pill,.ped .btn,.ped > span:empty{display:none}}
 .prf-f-wrap{overflow-x:auto;margin:0 0 12px;-webkit-overflow-scrolling:touch}.prf-f-wrap .seg{flex-wrap:nowrap}.prf-f-wrap .seg small{opacity:.6;font-weight:500;margin-left:2px}
+/* ===== consignación ===== */
+.csg-tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.csg-tier{display:flex;flex-direction:column;gap:5px;background:var(--bg-2);border-radius:10px;padding:10px 12px;font-size:.74rem;color:var(--ink-2);min-width:0}
+.csg-tier .csg-n{font-family:var(--f-num);font-size:.95rem;text-transform:uppercase;letter-spacing:.3px;color:var(--blue)}
+.csg-tier label{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.csg-tier.wide{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}
+.csg-tier input{width:48px;border:1px solid var(--line-2);border-radius:7px;padding:4px 6px;text-align:center;font-weight:700;font-size:.8rem;background:var(--bg);outline:none}
+.csg-tier input:focus{border-color:var(--blue)}
+.csg-tier input:disabled{background:transparent;border-color:transparent;color:var(--muted);width:20px;padding:4px 0}
+.csg-scroll{overflow-x:auto;margin-top:14px;-webkit-overflow-scrolling:touch}
+.csg-pt{min-width:520px}
+.csg-pt td small{display:block;font-size:.68rem;color:var(--muted);font-weight:400;margin-top:2px;white-space:nowrap}
+.csg-pt td b{white-space:nowrap}
+.csr-ctl{align-items:flex-end;gap:12px}
+.csr-ctl label{display:flex;flex-direction:column;gap:4px;font-size:.68rem;font-weight:600;color:var(--muted)}
+.csr-ctl .link{margin-left:auto;padding-bottom:10px}
+@media(max-width:640px){.csg-tiers{grid-template-columns:1fr}.content{padding-bottom:150px}}
+
+/* ===== asistente IA ===== */
+.ia-orb{display:inline-block;width:22px;height:22px;border-radius:50%;flex-shrink:0;position:relative;background:conic-gradient(from 0deg,#040BE7,#8A8EF5,#D9D9D9,#040BE7);animation:orb 6s linear infinite}
+.ia-orb::after{content:'';position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#C9CBFA 45%,#040BE7 100%)}
+.ia-orb.big{width:54px;height:54px}.ia-orb.big::after{inset:6px}
+@keyframes orb{to{transform:rotate(360deg)}}
+.ia-fab{position:fixed;right:22px;bottom:22px;z-index:45;width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.45rem;box-shadow:0 10px 28px rgba(4,11,231,.38);transition:transform .18s var(--ease-out),opacity .18s,box-shadow .2s}
+.ia-fab .ia-orb{position:absolute;inset:-4px;width:auto;height:auto;opacity:.9;z-index:-1}
+.ia-fab .ia-orb::after{inset:3px;background:var(--blue)}
+.ia-fab:active{transform:scale(.94)}
+.ia-fab.hide{opacity:0;transform:scale(.8);pointer-events:none}
+.ia{position:fixed;right:22px;bottom:22px;z-index:140;width:min(410px,calc(100vw - 24px));height:min(660px,calc(100vh - 44px));height:min(660px,calc(100dvh - 44px));background:var(--bg);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 70px rgba(10,10,12,.22),0 2px 8px rgba(10,10,12,.06);display:flex;flex-direction:column;overflow:hidden;transform-origin:calc(100% - 28px) calc(100% - 28px);transform:scale(.92);opacity:0;visibility:hidden;transition:transform .16s var(--ease-out),opacity .14s,visibility .16s}
+.ia.open{transform:none;opacity:1;visibility:visible;transition:transform .26s var(--ease-out),opacity .2s,visibility 0s}
+.ia-head{display:flex;align-items:center;gap:10px;padding:14px 14px 12px 16px;border-bottom:1px solid var(--line)}
+.ia-head b{display:block;font-family:var(--f-num);font-weight:600;font-size:1.05rem;text-transform:uppercase;letter-spacing:.3px;line-height:1.1}
+.ia-head div{flex:1;min-width:0}
+.ia-head div span{display:block;font-size:.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ia-head .dr-x{width:34px;height:34px;margin-left:0}
+.ia-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.ia-hello{margin:auto 0;text-align:center;padding:10px 12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.ia-hello h3{font-family:var(--f-num);font-weight:600;font-size:1.5rem;text-transform:uppercase;letter-spacing:.3px;margin-top:6px}
+.ia-hello p{font-size:.84rem;color:var(--ink-2);line-height:1.55;max-width:320px}
+.ia-hello small{font-size:.68rem;color:var(--dim);line-height:1.5;max-width:300px;margin-top:6px}
+.ia-m{display:flex;flex-direction:column;gap:8px;max-width:100%;animation:msgIn .28s var(--ease-out) both}
+.ia-m.u{align-items:flex-end}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ia-b{font-size:.86rem;line-height:1.55;border-radius:16px;padding:10px 14px;max-width:88%;overflow-wrap:anywhere}
+.ia-m.u .ia-b{background:var(--blue);color:#fff;border-bottom-right-radius:5px}
+.ia-m.a .ia-b{background:var(--bg-2);color:var(--ink);border-bottom-left-radius:5px;max-width:100%}
+.ia-m.a .ia-b:empty{display:none}
+.ia-m.err .ia-b{background:var(--bg);border:1px solid var(--line-2)}
+.ia-b p + p,.ia-b ul + p,.ia-b p + ul{margin-top:8px}
+.ia-b ul{padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.ia-b .fix{margin:8px 0 6px 16px;font-size:.8rem}
+.ia-b small{color:var(--muted);font-size:.74rem;line-height:1.5;display:block}
+.ia-typing{display:inline-flex;gap:5px;align-items:center;padding:14px 16px;align-self:flex-start}
+.ia-typing i{width:7px;height:7px;border-radius:50%;background:var(--blue);opacity:.3;animation:dot 1s ease-in-out infinite}
+.ia-typing i:nth-child(2){animation-delay:.15s}.ia-typing i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+.ia-act{border:1px solid var(--blue-line);border-radius:14px;padding:12px 14px;background:var(--bg);font-size:.8rem;line-height:1.5;transition:border-color .2s,background .2s}
+.ia-act.ok{border-color:var(--line);background:var(--blue-soft)}
+.ia-act.no{border-color:var(--line);opacity:.6}
+.ia-act.bad,.ia-act.err{border-color:var(--ink)}
+.ia-act-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ia-act-h .icon{color:var(--blue);font-size:1rem}
+.ia-act-h b{font-size:.84rem}
+.ia-act ul{list-style:none;display:flex;flex-direction:column;gap:2px;color:var(--ink-2)}
+.ia-act li small{color:var(--muted)}
+.ia-act-t{margin-top:6px;font-weight:600;font-size:.78rem}
+.ia-act-b{display:flex;gap:6px;margin-top:10px}
+.ia-act-b .btn{flex:1}
+.ia-act-s{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:.76rem;color:var(--muted);font-weight:600}
+.ia-act-s.ok{color:var(--blue)}.ia-act-s.err{color:var(--ink)}
+.ia-nav{align-self:flex-start}
+.ia-key{display:flex;gap:6px;margin-top:10px}
+.ia-key .in{min-height:38px;font-size:.82rem}
+.spin-i.dark{border-color:var(--line-2);border-top-color:var(--blue)}
+.ia-sug{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px}
+.ia-sug:not(:empty){padding-bottom:12px}
+.ia-sug .cc-opt{font-size:.72rem;padding:6px 11px}
+.ia-form{display:flex;align-items:flex-end;gap:8px;padding:10px 12px max(12px,env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.ia-form textarea{flex:1;resize:none;border:1px solid var(--line-2);border-radius:14px;padding:10px 13px;font:inherit;font-size:.9rem;line-height:1.4;outline:none;max-height:140px;background:var(--bg);transition:border-color .2s}
+.ia-form textarea:focus{border-color:var(--blue)}
+.ia-send{width:42px;height:42px;border-radius:50%;border:none;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.05rem;cursor:pointer;flex-shrink:0;transition:transform .14s var(--ease-out),opacity .2s}
+.ia-send:active{transform:scale(.92)}
+.ia-send:disabled{opacity:.45;pointer-events:none}
+@media(max-width:920px){.ia-fab{bottom:calc(86px + env(safe-area-inset-bottom));right:14px;width:50px;height:50px;font-size:1.25rem}}
+@media(max-width:640px){
+  .ia{right:0;bottom:0;left:0;width:100vw;height:92vh;height:92dvh;border-radius:20px 20px 0 0;border:none;transform:translateY(100%);opacity:1;transition:transform .22s var(--ease-drawer),visibility .22s}
+  .ia.open{transform:none;transition:transform .42s var(--ease-drawer),visibility 0s}
+  html.ia-on,html.ia-on body{overflow:hidden}
+  .ia-form textarea{font-size:16px}
+}
+
+/* ===== movimiento: respuesta al toque, entradas más vivas ===== */
+:root{--ease-out:cubic-bezier(.23,1,.32,1);--ease-drawer:cubic-bezier(.32,.72,0,1)}
+.btn,.cc-opt,.seg button,.line-x,.dr-x,.menu-btn,.step button,.link,.pk-item,.ped{-webkit-tap-highlight-color:transparent}
+.btn{transition:border-color .2s,color .2s,background .2s,transform .14s var(--ease-out)}
+.btn:active,.cc-opt:active,.dr-x:active,.menu-btn:active{transform:scale(.97)}
+.pc:active{transform:scale(.985)}
+.bn-sell .bn-c{transition:transform .16s var(--ease-out)}
+.bn-sell:active .bn-c{transform:scale(.92)}
+.bottom-nav a,.bottom-nav button{transition:color .18s}
+.bottom-nav a .icon{transition:transform .22s var(--ease-out)}
+.bottom-nav a.on .icon{transform:translateY(-2px) scale(1.08)}
+.view.on{animation:viewIn .34s var(--ease-out) both}
+@keyframes viewIn{from{opacity:0;transform:translateY(6px);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+.view.on .anim{animation:cardIn .5s var(--ease-out) both}
+.drawer{transition:transform .26s var(--ease-drawer)}
+.drawer.open{transition:transform .46s var(--ease-drawer)}
+.dr-scrim{transition:opacity .25s;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.tbl tbody tr{animation:rowIn .22s ease both}
+.toast{transition:transform .4s var(--ease-out),opacity .2s,visibility .2s}
+.toast .icon{color:var(--blue-3)}
+.nav{position:relative}
+.nav-ind{position:absolute;left:12px;right:12px;top:0;height:38px;border-radius:9px;background:var(--blue-soft);pointer-events:none;opacity:0;transform:translateY(0);will-change:transform}
+.nav-ind::before{content:'';position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--blue)}
+.nav-ind.show{opacity:1}
+.nav-ind.move{transition:transform .32s var(--ease-out),height .2s,opacity .2s}
+.nav.has-ind a{z-index:1}
+.nav.has-ind a.on{background:transparent}
+.nav.has-ind a.on::before{display:none}
+.kpi{transition:transform .25s var(--ease-out),box-shadow .25s}
+.fx-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:300}
+@media (hover:hover) and (pointer:fine){
+  .card::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;opacity:0;transition:opacity .3s;
+    background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%),rgba(4,11,231,.55),transparent 70%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+  .card.lit::after{opacity:1}
+  .kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(4,11,231,.08)}
+  .ia-fab:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(4,11,231,.46)}
+  .ia-send:hover{background:var(--blue-2)}
+}
+@media (prefers-reduced-motion:reduce){
+  .ia-orb{animation:none!important}
+  .ia,.ia.open,.drawer,.drawer.open{transition:opacity .15s!important}
+}
+.legend i.line{padding:0;border:none;display:inline-block;animation:none;width:10px}
 </style>
 </head>
 <body>
@@ -640,6 +775,9 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
   <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.8-9.8"/><path d="m17 6 3 3"/><path d="m14 9 2 2"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2V3z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3l1.9 5.6L18.5 10.5l-5.6 1.9L11 18l-1.9-5.6L3.5 10.5l5.6-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M4 8h14"/><path d="m15 5 3 3-3 3"/><path d="M20 16H6"/><path d="m9 13-3 3 3 3"/></symbol>
 </svg>
 
 <div class="app">
@@ -655,9 +793,11 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
       <a href="#clientes" data-v="clientes"><svg class="icon"><use href="#i-users"/></svg>Clientes</a>
       <a href="#web" data-v="web"><svg class="icon"><use href="#i-globe"/></svg>Web</a>
       <div class="nav-group">Operación</div>
+      <a href="#" data-act="ia"><svg class="icon"><use href="#i-spark"/></svg>Asistente IA</a>
       <a href="#" data-act="venta"><svg class="icon"><use href="#i-zap"/></svg>Registrar venta</a>
       <a href="#" data-act="ingreso"><svg class="icon"><use href="#i-plus"/></svg>Cargar stock</a>
       <a href="#perfumes" data-v="perfumes"><svg class="icon"><use href="#i-bag"/></svg>Perfumes<span class="nav-badge" id="nb-perf"></span></a>
+      <a href="#consignacion" data-v="consignacion"><svg class="icon"><use href="#i-hand"/></svg>Consignación</a>
       <a href="#catalogo" data-v="catalogo"><svg class="icon"><use href="#i-store"/></svg>Catálogo de la tienda</a>
       <a href="#compras" data-v="compras"><svg class="icon"><use href="#i-cart"/></svg>Compras / Lotes</a>
       <a href="#movimientos" data-v="movimientos"><svg class="icon"><use href="#i-list"/></svg>Movimientos</a>
@@ -794,6 +934,26 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
           <div class="card-h"><div><h2>Catálogo de perfumes · costos</h2><p>Los 82 de la preventa · USD y stock de Star Company relevados el <span id="prf-cat-fecha"></span> · Costo = USD × 1,13 × $1.660</p></div></div>
           <div id="t-prf-cat"></div>
         </div></div>
+      </section>
+
+      <!-- ================= CONSIGNACIÓN ================= -->
+      <section class="view" data-view="consignacion">
+        <div class="grid" id="csg-kpis"></div>
+        <div class="grid"><div class="card s12 anim">
+          <div class="card-h"><div><h2>Consignaciones</h2><p>Lo que le dejaste a cada revendedor · tocá una para cargar lo que vendió, lo que devolvió y lo que te pagó</p></div>
+            <div class="card-tools"><button class="btn btn-sell" type="button" id="csg-new"><svg class="icon"><use href="#i-plus"/></svg>Nueva entrega</button></div></div>
+          <div id="csg-warn"></div>
+          <div class="prf-f-wrap"><div class="seg" id="csg-f"></div></div>
+          <div id="t-csg"></div>
+        </div></div>
+        <div class="grid">
+          <div class="card s5 anim"><div class="card-h"><div><h2>Revendedores</h2><p>Unidades vendidas en los últimos 30 días, nivel y deuda</p></div></div><ol class="hbars" id="csg-rank"></ol></div>
+          <div class="card s7 anim"><div class="card-h"><div><h2>A qué precio dejarle</h2><p>Cuanto más vende en 30 días, más comisión se lleva por unidad</p></div></div>
+            <div class="csg-tiers" id="csg-tiers"></div>
+            <div id="csg-precios"></div>
+            <div class="note" id="csg-reglas"></div>
+          </div>
+        </div>
       </section>
 
       <!-- ================= CALCULADORA ================= -->
@@ -936,6 +1096,14 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
           <div class="conn-btns"><button class="btn btn-primary" type="button" id="conn-test"><svg class="icon"><use href="#i-check"/></svg>Probar conexión</button><button class="btn" type="button" id="conn-link"><svg class="icon"><use href="#i-link"/></svg>Copiar link para conectar el celu</button><button class="btn" type="button" id="conn-off">Desconectar este dispositivo</button></div>
           <div class="note" id="conn-out">La clave queda guardada solo en este navegador. Para usar el panel en el celu, abrí ahí el link de conexión.</div>
         </div></div>
+        <div class="grid"><div class="card s12 anim" id="ia-card">
+          <div class="card-h"><div><h2>Asistente IA</h2><p>Chat que responde con tus datos y deja listas ventas, cargas y correcciones para que las confirmes. Usa Gemini, de Google.</p></div><span class="pill p-gray" id="ia-pill">Sin revisar</span></div>
+          <div class="conn-grid" style="margin-top:0">
+            <div class="field"><label for="ia-key-in">Clave de Gemini</label><input id="ia-key-in" type="password" placeholder="Pegá acá la clave" autocomplete="off" spellcheck="false"></div>
+            <div class="conn-btns" style="margin-top:0"><button class="btn btn-primary" type="button" id="ia-key-save">Guardar clave</button><button class="btn" type="button" id="ia-key-off" hidden>Quitar clave</button></div>
+          </div>
+          <div class="note" id="ia-out">La clave se guarda en tu script de Google, no en este navegador.</div>
+        </div></div>
         <div class="grid"><div class="card s8 anim">
           <div class="card-h"><div><h2>Ajustes del panel</h2><p>Se guardan en este navegador. No cambian la planilla.</p></div></div>
           <form class="form" id="cfg-form" onsubmit="return false">
@@ -973,6 +1141,13 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
   <a href="#stock" data-v="stock"><svg class="icon"><use href="#i-box"/></svg>Stock<span class="bn-dot" id="bn-stock"></span></a>
   <button type="button" id="bn-more"><svg class="icon"><use href="#i-more"/></svg>Más</button>
 </nav>
+<button class="ia-fab" id="ia-fab" type="button" aria-label="Abrir el asistente" title="Asistente · Ctrl + K"><span class="ia-orb"></span><svg class="icon"><use href="#i-spark"/></svg></button>
+<aside class="ia" id="ia" role="dialog" aria-label="Asistente" aria-hidden="true">
+  <div class="ia-head"><span class="ia-orb"></span><div><b>Asistente</b><span id="ia-sub">Pregunta, anota y corrige con tus datos</span></div><button class="link" type="button" id="ia-clear">Nuevo chat</button><button class="dr-x" id="ia-x" type="button" aria-label="Cerrar"><svg class="icon"><use href="#i-x"/></svg></button></div>
+  <div class="ia-body" id="ia-body" aria-live="polite"></div>
+  <div class="ia-sug" id="ia-sug"></div>
+  <form class="ia-form" id="ia-form"><textarea id="ia-in" rows="1" placeholder="Preguntá o pedí algo…" aria-label="Mensaje" enterkeyhint="send"></textarea><button class="ia-send" id="ia-send" type="submit" aria-label="Enviar"><svg class="icon"><use href="#i-send"/></svg></button></form>
+</aside>
 <div class="toast" id="toast" role="status" aria-live="polite"><svg class="icon"><use href="#i-check"/></svg><span id="toast-t"></span><button type="button" id="toast-b" hidden></button></div>
 <div class="dr-scrim" id="dr-scrim"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-title">
@@ -984,14 +1159,15 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
 <script type="text/plain" id="gs-code">
 /**
  * VAPE CREW — ADMIN
- * Recibe lo que cargás en el panel (ventas, stock, productos y fotos)
+ * Recibe lo que cargás en el panel (ventas, stock, productos, fotos,
+ * perfumes y consignaciones) y atiende al asistente IA
  * y lo escribe en la planilla CLAUDE CATALOGO. La tienda lee de ahí,
  * así que todo lo que cargues en el panel aparece solo en la web.
  *
  * Es un proyecto INDEPENDIENTE: crealo desde script.google.com → Nuevo proyecto.
  * No lo pegues en el proyecto del catálogo (se pisan las funciones doGet).
  */
-const VERSION = 5;
+const VERSION = 6;
 const SHEET_ID = '1HmbKZprUmHFGQ0K-YvIDvF7gZfu42iUhrYvFeKk1T-Y';
 const CLAVE = '__CLAVE__';            // la pone el panel cuando copiás el código
 const CARPETA_FOTOS = 'VAPE CREW · Fotos de productos';
@@ -1028,6 +1204,9 @@ function doPost(e) {
   if (PUBLICAS[b.accion]) return publica(b);
   if (!CLAVE || CLAVE.indexOf('__') === 0) return salida({ ok: false, error: 'Falta la clave en el script. Copiá el código de nuevo desde el panel.' });
   if (String(b.clave || '') !== CLAVE) return salida({ ok: false, error: 'Clave incorrecta' });
+  if (b.accion === 'ia') {   // el asistente no escribe en la planilla: se atiende sin trabarla
+    try { return salida(iaResponder(b)); } catch (err) { return salida({ ok: false, error: String(err && err.message || err) }); }
+  }
   const accion = ACCIONES[b.accion];
   if (!accion) return salida({ ok: false, error: 'Acción desconocida: ' + b.accion });
 
@@ -1388,6 +1567,249 @@ ACCIONES.perfume_eliminar = function (b, ss) {
   t.sh.deleteRow(f);
   return { id: limpio(b.id) };
 };
+
+/* ------------------------------------------------------------------ */
+/* CONSIGNACIÓN: mercadería que se deja a revendedores (pestaña CONSIGNACIONES, una fila por entrega). v6
+   Al entregar, las unidades salen de STOCK (fila CONSIGNACION en MOVIMIENTOS).
+   Al rendir, lo vendido entra como VENTA (cliente = revendedor, al precio acordado, sin tocar el stock)
+   y lo devuelto vuelve a STOCK (fila DEVOLUCION). */
+const CONSIG_HEAD = ['ID', 'FECHA', 'REVENDEDOR', 'LUGAR', 'ESTADO', 'DETALLE', 'UNIDADES', 'VENDIDAS', 'DEVUELTAS', 'EN_MANO',
+  'VENDIDO', 'COBRADO', 'SALDO', 'NOTAS', 'PAGOS', 'ITEMS', 'ACTUALIZADO'];
+function consigTabla(ss) {
+  const nueva = !ss.getSheetByName('CONSIGNACIONES');
+  const t = tabla(ss, 'CONSIGNACIONES', CONSIG_HEAD);
+  if (nueva) { t.sh.getRange(1, 1, 1, CONSIG_HEAD.length).setFontWeight('bold'); t.sh.setFrozenRows(1); t.sh.getRange('A:A').setNumberFormat('@'); }
+  return t;
+}
+function consigFila(t, id) {
+  const n = t.sh.getLastRow(), c = t.col('ID');
+  if (!id || n < 2 || c < 0) return -1;
+  const v = t.sh.getRange(2, c + 1, n - 1, 1).getDisplayValues();
+  for (let i = 0; i < v.length; i++) if (String(v[i][0]).trim() === id) return i + 2;
+  return -1;
+}
+function consigItems(txt) {
+  let a = [];
+  try { a = JSON.parse(String(txt || '[]')) || []; } catch (e) { a = []; }
+  return a.map(function (x) {
+    return { id: Number(x.id), producto: limpio(x.producto), sabor: limpio(x.sabor), cant: Math.round(Number(x.cant)) || 0, precio: Math.round(Number(x.precio)) || 0,
+      pvp: x.pvp == null ? null : Number(x.pvp), costo: x.costo == null ? null : Number(x.costo), vend: Math.round(Number(x.vend)) || 0, dev: Math.round(Number(x.dev)) || 0 };
+  });
+}
+/* Arma la fila completa (con los totales) a partir de los ítems */
+function consigObj(id, rev, lugar, estado, items, cobrado, notas, pagos) {
+  let u = 0, v = 0, d = 0, vendido = 0;
+  items.forEach(function (x) { u += x.cant; v += x.vend; d += x.dev; vendido += x.vend * x.precio; });
+  return { 'ID': id, 'REVENDEDOR': rev, 'LUGAR': lugar, 'ESTADO': estado,
+    'DETALLE': items.map(function (x) { return x.cant + 'x ' + x.producto + ' ' + x.sabor; }).join(' · '),
+    'UNIDADES': u, 'VENDIDAS': v, 'DEVUELTAS': d, 'EN_MANO': u - v - d, 'VENDIDO': vendido, 'COBRADO': cobrado, 'SALDO': vendido - cobrado,
+    'NOTAS': notas, 'PAGOS': pagos, 'ITEMS': JSON.stringify(items), 'ACTUALIZADO': new Date() };
+}
+function consigEscribir(t, f, obj) {
+  if (f < 0) { agregar(t, obj); return; }
+  const fila = t.sh.getRange(f, 1, 1, t.nc).getValues()[0];
+  Object.keys(obj).forEach(function (k) { const c = t.col(k); if (c >= 0) fila[c] = obj[k]; });
+  t.sh.getRange(f, 1, 1, t.nc).setValues([fila]);
+}
+function consigLeer(t, f) {
+  const v = t.sh.getRange(f, 1, 1, t.nc).getValues()[0];
+  const g = function (k) { const c = t.col(k); return c >= 0 ? v[c] : ''; };
+  return { rev: limpio(g('REVENDEDOR')), lugar: limpio(g('LUGAR')), estado: norm(g('ESTADO')) === 'CERRADA' ? 'CERRADA' : 'ABIERTA', items: consigItems(g('ITEMS')),
+    cobrado: Math.round(num(g('COBRADO'))) || 0, notas: limpio(g('NOTAS')), pagos: limpio(g('PAGOS')) };
+}
+function consigOut(o) {
+  return { id: o['ID'], revendedor: o['REVENDEDOR'], lugar: o['LUGAR'], estado: o['ESTADO'], detalle: o['DETALLE'], unidades: o['UNIDADES'], vendidas: o['VENDIDAS'],
+    devueltas: o['DEVUELTAS'], enMano: o['EN_MANO'], vendido: o['VENDIDO'], cobrado: o['COBRADO'], saldo: o['SALDO'], notas: o['NOTAS'], pagos: o['PAGOS'], items: JSON.parse(o['ITEMS']) };
+}
+/* Mueve unidades entre STOCK y la calle, y lo anota en MOVIMIENTOS. delta > 0 = sale de stock */
+function consigMover(P, M, p, delta, fecha, rev, id, movs, tocados) {
+  if (!delta) return;
+  const tipo = delta > 0 ? 'CONSIGNACION' : 'DEVOLUCION', n = Math.abs(delta);
+  const nota = (delta > 0 ? 'Entregado en consignación' : 'Vuelve de consignación') + ' · ' + id;
+  const fila = agregar(M, { 'FECHA': fecha, 'TIPO': tipo, 'ID PRODUCTO': p.id, 'PRODUCTO': p.producto, 'SABOR': p.sabor, 'CANTIDAD': n, 'CLIENTE': rev, 'NOTAS': nota });
+  ponerStock(P, p, Math.max(0, (isFinite(p.stock) ? p.stock : 0) - delta));
+  movs.push(movOut(fila, fecha, tipo, p, n, '', '', rev, nota));
+  tocados.push(p);
+}
+
+/* Entrega nueva, o cambios a una entrega (nombre, precios, sumar o sacar unidades que todavía tiene) */
+ACCIONES.consig_guardar = function (b, ss) {
+  const c = b.consig || {};
+  const rev = limpio(c.revendedor);
+  if (!rev) throw new Error('Falta el nombre del revendedor');
+  const P = productos(ss), M = tabla(ss, HOJAS.mov), t = consigTabla(ss);
+  const viejoId = limpio(c.id);
+  let f = -1, vieja = null;
+  if (viejoId) {
+    f = consigFila(t, viejoId);
+    if (f < 0) throw new Error('No encontré esa consignación en la planilla. ¿La borraste o la cambiaste a mano? Tocá Actualizar.');
+    vieja = consigLeer(t, f);
+  }
+  const prev = {};
+  (vieja ? vieja.items : []).forEach(function (x) { prev[x.id] = x; });
+  const junt = {};
+  (c.items || []).forEach(function (x) {
+    const cant = Math.round(Number(x.cant));
+    if (!(cant > 0)) return;
+    const p = porId(P, x.id), o = prev[p.id] || {};
+    let precio = Math.round(Number(x.precio));
+    if (!isFinite(precio) || precio < 0) precio = isFinite(p.precio) ? p.precio : 0;
+    if (junt[p.id]) { junt[p.id].cant += cant; return; }
+    junt[p.id] = { id: p.id, producto: p.producto, sabor: p.sabor, cant: cant, precio: precio, pvp: isFinite(p.precio) ? p.precio : null,
+      costo: isFinite(p.costo) ? p.costo : null, vend: o.vend || 0, dev: o.dev || 0 };
+  });
+  const items = Object.keys(junt).map(function (k) { return junt[k]; });
+  if (!items.length) throw new Error('La consignación no tiene productos');
+  items.forEach(function (x) {
+    if (x.cant < x.vend + x.dev) throw new Error(x.producto + ' ' + x.sabor + ': ya rindió ' + (x.vend + x.dev) + ' unidades, no puede quedar en ' + x.cant + '.');
+  });
+  (vieja ? vieja.items : []).forEach(function (o) {
+    if (!junt[o.id] && (o.vend + o.dev) > 0) throw new Error('No podés sacar ' + o.producto + ' ' + o.sabor + ': ya tiene unidades rendidas.');
+  });
+  const falta = [];
+  items.forEach(function (x) {
+    const p = porId(P, x.id), d = x.cant - (prev[x.id] ? prev[x.id].cant : 0), s = isFinite(p.stock) ? p.stock : 0;
+    if (d > s) falta.push(p.producto + ' ' + p.sabor + ' (hay ' + s + ')');
+  });
+  if (falta.length && !b.forzar) return { ok: false, sinStock: falta, error: 'No alcanza el stock de: ' + falta.join(', ') };
+
+  const id = viejoId || ('CS' + Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyMMddHHmmss') + Math.floor(Math.random() * 90 + 10));
+  const fecha = viejoId ? new Date() : fechaDe(c.fecha);
+  const movs = [], tocados = [];
+  items.forEach(function (x) { consigMover(P, M, porId(P, x.id), x.cant - (prev[x.id] ? prev[x.id].cant : 0), fecha, rev, id, movs, tocados); });
+  (vieja ? vieja.items : []).forEach(function (o) {
+    if (junt[o.id]) return;
+    const p = P.lista.filter(function (z) { return z.id === o.id; })[0];
+    if (p) consigMover(P, M, p, -o.cant, fecha, rev, id, movs, tocados);
+  });
+  const obj = consigObj(id, rev, limpio(c.lugar), vieja ? vieja.estado : 'ABIERTA', items, vieja ? vieja.cobrado : 0, limpio(c.notas), vieja ? vieja.pagos : '');
+  if (!viejoId) obj['FECHA'] = fecha;
+  consigEscribir(t, f, obj);
+  return { consig: consigOut(obj), fecha: viejoId ? null : fecha.getTime(), nuevo: !viejoId, movs: movs, prods: unicos(tocados).map(prodOut) };
+};
+
+/* Rendición: cuánto vendió, cuánto devolvió y cuánta plata entregó */
+ACCIONES.consig_rendir = function (b, ss) {
+  const t = consigTabla(ss), id = limpio(b.id), f = consigFila(t, id);
+  if (f < 0) throw new Error('No encontré esa consignación en la planilla. Tocá Actualizar.');
+  const c = consigLeer(t, f), P = productos(ss), M = tabla(ss, HOJAS.mov);
+  const fecha = fechaDe(b.fecha), tz = ss.getSpreadsheetTimeZone();
+  const movs = [], tocados = [];
+  let algo = false;
+  (b.items || []).forEach(function (r) {
+    const it = c.items.filter(function (x) { return x.id === Number(r.id); })[0];
+    if (!it) return;
+    const v = Math.max(0, Math.round(Number(r.vend) || 0)), d = Math.max(0, Math.round(Number(r.dev) || 0));
+    if (!v && !d) return;
+    if (it.vend + it.dev + v + d > it.cant) throw new Error(it.producto + ' ' + it.sabor + ': le quedan ' + (it.cant - it.vend - it.dev) + ' y estás rindiendo ' + (v + d) + '.');
+    const p = P.lista.filter(function (z) { return z.id === it.id; })[0];
+    const pp = p || { id: it.id, producto: it.producto, sabor: it.sabor };
+    if (v) {
+      const nota = 'Consignación ' + id;
+      const fila = agregar(M, { 'FECHA': fecha, 'TIPO': 'VENTA', 'ID PRODUCTO': pp.id, 'PRODUCTO': pp.producto, 'SABOR': pp.sabor, 'CANTIDAD': v,
+        'PRECIO UNIT.': it.precio, 'TOTAL': it.precio * v, 'CLIENTE': c.rev, 'NOTAS': nota });
+      movs.push(movOut(fila, fecha, 'VENTA', pp, v, it.precio, it.precio * v, c.rev, nota, tz));
+      it.vend += v;
+    }
+    if (d) {
+      if (p) consigMover(P, M, p, -d, fecha, c.rev, id, movs, tocados);
+      it.dev += d;
+    }
+    algo = true;
+  });
+  const cobro = Math.round(Number(b.cobro) || 0);
+  if (cobro < 0) throw new Error('El cobro no puede ser negativo');
+  let pagos = c.pagos;
+  if (cobro > 0) {
+    pagos = ((pagos ? pagos + ' · ' : '') + Utilities.formatDate(fecha, tz, 'dd/MM') + ' $' + cobro + (limpio(b.pago) ? ' ' + limpio(b.pago) : '')).slice(-900);
+    algo = true;
+  }
+  let enMano = 0;
+  c.items.forEach(function (x) { enMano += x.cant - x.vend - x.dev; });
+  let estado = c.estado;
+  if (b.cerrar) {
+    if (enMano > 0) throw new Error('Todavía tiene ' + enMano + ' unidades. Marcalas como vendidas o devueltas antes de cerrar.');
+    estado = 'CERRADA'; algo = true;
+  } else if (b.reabrir) { estado = 'ABIERTA'; algo = true; }
+  if (!algo) throw new Error('No hay nada para rendir');
+  const obj = consigObj(id, c.rev, c.lugar, estado, c.items, c.cobrado + cobro, c.notas, pagos);
+  consigEscribir(t, f, obj);
+  return { consig: consigOut(obj), movs: movs, prods: unicos(tocados).map(prodOut) };
+};
+
+/* Eliminar una entrega cargada por error: solo si todavía no rindió ventas. Devuelve lo que tiene al stock */
+ACCIONES.consig_eliminar = function (b, ss) {
+  const t = consigTabla(ss), id = limpio(b.id), f = consigFila(t, id);
+  if (f < 0) throw new Error('No encontré esa consignación en la planilla');
+  const c = consigLeer(t, f);
+  if (c.items.some(function (x) { return x.vend > 0; }) || c.cobrado > 0) throw new Error('Esta consignación ya tiene ventas o cobros. En vez de eliminarla, rendí lo que falta y cerrala.');
+  const P = productos(ss), M = tabla(ss, HOJAS.mov), fecha = new Date(), movs = [], tocados = [];
+  c.items.forEach(function (x) {
+    const p = P.lista.filter(function (z) { return z.id === x.id; })[0], n = x.cant - x.dev;
+    if (p && n > 0) consigMover(P, M, p, -n, fecha, c.rev, id, movs, tocados);
+  });
+  t.sh.deleteRow(f);
+  return { id: id, movs: movs, prods: unicos(tocados).map(prodOut) };
+};
+
+/* ------------------------------------------------------------------ */
+/* ASISTENTE IA (Gemini). La clave de Gemini queda guardada en las propiedades de este script,
+   nunca en el panel ni en la planilla. El panel manda la conversación y un resumen de los datos;
+   el script solo se lo pasa a Gemini y devuelve la respuesta. No escribe nada en la planilla. v6 */
+const IA_MODELOS = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+ACCIONES.ia = function () { return {}; };   // se atiende antes, en doPost (sin trabar la planilla)
+ACCIONES.ia_clave = function (b) {
+  const props = PropertiesService.getScriptProperties(), k = limpio(b.gemini);
+  if (!k) { props.deleteProperty('GEMINI_KEY'); props.deleteProperty('GEMINI_MODELO'); return { ia: false }; }
+  props.setProperty('GEMINI_KEY', k); props.deleteProperty('GEMINI_MODELO');
+  const r = iaResponder({ sistema: 'Respondé solo con este JSON: {"texto":"ok"}', mensajes: [{ rol: 'user', texto: 'hola' }] });
+  if (!r.ok && r.claveMala) { props.deleteProperty('GEMINI_KEY'); throw new Error(r.error); }
+  return { ia: true, modelo: r.modelo || '', aviso: r.ok ? '' : r.error };
+};
+ACCIONES.ia_estado = function () {
+  const props = PropertiesService.getScriptProperties();
+  return { ia: !!props.getProperty('GEMINI_KEY'), modelo: props.getProperty('GEMINI_MODELO') || '' };
+};
+function iaResponder(b) {
+  const props = PropertiesService.getScriptProperties(), key = props.getProperty('GEMINI_KEY');
+  if (!key) return { ok: false, sinClave: true, error: 'Falta la clave de Gemini. Cargala en Ajustes → Asistente IA.' };
+  const contents = [];
+  (b.mensajes || []).slice(-20).forEach(function (m) {
+    const role = m.rol === 'ia' ? 'model' : 'user', texto = String(m.texto || '').slice(0, 8000);
+    if (!texto) return;
+    const u = contents[contents.length - 1];
+    if (u && u.role === role) u.parts[0].text += '\n' + texto; else contents.push({ role: role, parts: [{ text: texto }] });
+  });
+  while (contents.length && contents[0].role !== 'user') contents.shift();
+  if (!contents.length || contents[contents.length - 1].role !== 'user') return { ok: false, error: 'No llegó ninguna pregunta' };
+  const body = { systemInstruction: { parts: [{ text: String(b.sistema || '').slice(0, 200000) }] }, contents: contents, generationConfig: { responseMimeType: 'application/json' } };
+  const pref = props.getProperty('GEMINI_MODELO');
+  const lista = (pref ? [pref] : []).concat(IA_MODELOS.filter(function (m) { return m !== pref; }));
+  let ultimo = '';
+  for (let i = 0; i < lista.length; i++) {
+    const m = lista[i];
+    let code = 0, txt = '';
+    try {
+      const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent', { method: 'post', contentType: 'application/json',
+        headers: { 'x-goog-api-key': key }, payload: JSON.stringify(body), muteHttpExceptions: true });
+      code = r.getResponseCode(); txt = r.getContentText();
+    } catch (err) { ultimo = String(err && err.message || err); continue; }
+    let j = null;
+    try { j = JSON.parse(txt); } catch (e) {}
+    if (code === 200 && j) {
+      const c = j.candidates && j.candidates[0];
+      const out = c && c.content && c.content.parts ? c.content.parts.map(function (p) { return p.text || ''; }).join('') : '';
+      if (out) { if (pref !== m) props.setProperty('GEMINI_MODELO', m); return { ok: true, respuesta: out, modelo: m }; }
+      ultimo = 'respuesta vacía' + (c && c.finishReason ? ' (' + c.finishReason + ')' : '');
+      continue;
+    }
+    const msg = j && j.error && j.error.message ? j.error.message : ('error ' + code);
+    if (/API key not valid|API_KEY_INVALID|PERMISSION_DENIED/i.test(txt) || code === 401 || code === 403)
+      return { ok: false, claveMala: true, error: 'Google no aceptó la clave de Gemini. Revisala en Ajustes → Asistente IA.' };
+    ultimo = (code === 429 ? 'se acabó el cupo gratis de ' + m : m + ': ' + msg).slice(0, 200);
+  }
+  return { ok: false, error: 'Gemini no respondió: ' + ultimo + '. Probá de nuevo en un rato.' };
+}
 
 /* ------------------------------------------------------------------ */
 function salida(o) {
@@ -2185,9 +2607,9 @@ function prodCols(){ return { k:'prod', label:'Producto', get:function(r){ retur
    VISTAS
    ============================================================= */
 var VIEW = 'resumen';
-var TITLES = { resumen:'Resumen', catalogo:'Catálogo de la tienda', metas:'Metas semanales', ventas:'Ventas', productos:'Productos', stock:'Stock', clientes:'Clientes', web:'Web', compras:'Compras / Lotes', movimientos:'Movimientos', calculadora:'Calculadora de precio', comparar:'Comparar productos', revisar:'Revisar planilla', ajustes:'Ajustes', perfumes:'Perfumes' };
-var NOPERIOD = { perfumes:1, catalogo:1, stock:1, revisar:1, ajustes:1, metas:1, compras:1, calculadora:1, comparar:1 };
-var SUBT = { perfumes:'Pedidos de preventa y ventas de perfumes', catalogo:'Lo que ve la gente en la web · tocá un producto para editarlo', stock:'Stock actual · ritmo de venta de los últimos 30 días', revisar:'Toda la planilla', ajustes:'Configuración del panel', metas:'Últimos 7 días contra las metas de la Fase 1', compras:'Registrá cada lote que comprás', calculadora:'Precio sugerido según tu margen', comparar:'Lado a lado, con lo que conviene marcado' };
+var TITLES = { resumen:'Resumen', catalogo:'Catálogo de la tienda', metas:'Metas semanales', ventas:'Ventas', productos:'Productos', stock:'Stock', clientes:'Clientes', web:'Web', compras:'Compras / Lotes', movimientos:'Movimientos', calculadora:'Calculadora de precio', comparar:'Comparar productos', revisar:'Revisar planilla', ajustes:'Ajustes', perfumes:'Perfumes', consignacion:'Consignación' };
+var NOPERIOD = { consignacion:1, perfumes:1, catalogo:1, stock:1, revisar:1, ajustes:1, metas:1, compras:1, calculadora:1, comparar:1 };
+var SUBT = { consignacion:'Mercadería que les dejás a revendedores: qué tienen, qué vendieron y qué te deben', perfumes:'Pedidos de preventa y ventas de perfumes', catalogo:'Lo que ve la gente en la web · tocá un producto para editarlo', stock:'Stock actual · ritmo de venta de los últimos 30 días', revisar:'Toda la planilla', ajustes:'Configuración del panel', metas:'Últimos 7 días contra las metas de la Fase 1', compras:'Registrá cada lote que comprás', calculadora:'Precio sugerido según tu margen', comparar:'Lado a lado, con lo que conviene marcado' };
 
 function render(){
   var R = range();
@@ -2195,13 +2617,13 @@ function render(){
   $('period').style.display = NOPERIOD[VIEW] ? 'none' : '';
   document.querySelector('.top-tools').classList.toggle('hide', !!NOPERIOD[VIEW]);
   $('custom-range').classList.toggle('show', PERIOD === 'custom' && !NOPERIOD[VIEW]);
-  if (VIEW === 'ajustes'){ vAjustes(); vConexion(); }
+  if (VIEW === 'ajustes'){ vAjustes(); vConexion(); vIA(); }
   if (!DATA) return;
   var V = DATA.ventas.filter(function(v){ return inR(v.d, R.from, R.to); });
   $('pn').textContent = NOPERIOD[VIEW] ? SUBT[VIEW]
     : R.label + ' · ' + (VIEW === 'web' ? intf(DATA.events.filter(function(e){ return e.ev === 'sesion' && inR(e.d, R.from, R.to); }).length) + ' sesiones' : intf(V.length) + ' ' + plural(V.length, 'venta', 'ventas'));
   badges();
-  ({ resumen:vResumen, catalogo:vCatalogo, metas:vMetas, ventas:vVentas, productos:vProductos, stock:vStock, clientes:vClientes, web:vWeb, compras:vCompras, movimientos:vMov, calculadora:vCalc, comparar:vComp, revisar:vRevisar, ajustes:function(){}, perfumes:vPerfumes })[VIEW](R, V);
+  ({ resumen:vResumen, catalogo:vCatalogo, metas:vMetas, ventas:vVentas, productos:vProductos, stock:vStock, clientes:vClientes, web:vWeb, compras:vCompras, movimientos:vMov, calculadora:vCalc, comparar:vComp, revisar:vRevisar, ajustes:function(){}, perfumes:vPerfumes, consignacion:vConsig })[VIEW](R, V);
 }
 function badges(){
   var urg = DATA.stock.filter(function(p){ return p.sold30 > 0 && p.state !== 'ok'; }).length;
@@ -2752,7 +3174,8 @@ function go(){
   VIEW = v;
   document.querySelectorAll('.view').forEach(function(s){ var on = s.getAttribute('data-view') === v; s.classList.toggle('on', on); if (on) stagger(s); });
   document.querySelectorAll('#nav a, #bottom-nav a').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-v') === v); });
-  $('bn-more').classList.toggle('on', ['metas','ventas','productos','clientes','web','compras','movimientos','calculadora','comparar','revisar','ajustes','perfumes'].indexOf(v) !== -1);
+  $('bn-more').classList.toggle('on', ['metas','ventas','productos','clientes','web','compras','movimientos','calculadora','comparar','revisar','ajustes','perfumes','consignacion'].indexOf(v) !== -1);
+  if (window.navInd) navInd();
   closeMenu();
   window.scrollTo(0, 0);
   render();
@@ -4076,7 +4499,7 @@ function apply(r, fromCache){
   DATA = build(r[0], r[1], r[2], r[3]);
   fillSelects();
   render();
-  if (fromCache) status('Datos guardados · actualizando…');
+  if (fromCache) status('Datos guardados · actualizando…'); else fxGoal();
 }
 function load(){
   if (loading) return; loading = true;
@@ -4454,6 +4877,897 @@ $('prf-copy').addEventListener('click', prfCopyProv);
 $('prf-mark').addEventListener('click', prfMark);
 $('prf-f').addEventListener('click', function(e){ var b = e.target.closest('[data-f]'); if (!b) return; PRF.f = b.getAttribute('data-f'); vPerfumes(); });
 $('refresh').addEventListener('click', function(){ if (VIEW === 'perfumes') prfLoad(); });
+
+/* =============================================================
+   CONSIGNACIÓN · mercadería que se deja a revendedores
+   (pestaña CONSIGNACIONES, una fila por entrega). Script ADMIN v6:
+   consig_guardar / consig_rendir / consig_eliminar.
+   ============================================================= */
+var CSG = { rows:null, err:'', loading:false, f:'abiertas', pend:{}, ver:null };
+var CSO = null;   // entrega que se está cargando / editando
+var CSR = null;   // rendición que se está cargando
+var CSCFG = { tiers:[{ min:0, pct:10 }, { min:10, pct:15 }, { min:25, pct:20 }], piso:15 };
+try{
+  var csSaved = JSON.parse(localStorage.getItem('vc_consig_cfg') || 'null');
+  if (csSaved && Array.isArray(csSaved.tiers) && csSaved.tiers.length === 3) CSCFG = csSaved;
+}catch(e){}
+function csgSaveCfg(){ try{ localStorage.setItem('vc_consig_cfg', JSON.stringify(CSCFG)); }catch(e){} }
+
+function csgTotals(items){
+  var u = 0, v = 0, d = 0, vendido = 0;
+  items.forEach(function(x){ u += x.cant; v += x.vend; d += x.dev; vendido += x.vend * x.precio; });
+  return { u:u, vend:v, dev:d, mano:u - v - d, vendido:vendido };
+}
+function csgRow(id, d, rev, lugar, estado, items, cobrado, notas, pagos){
+  var t = csgTotals(items);
+  return { id:id, d:d, rev:rev, lugar:lugar, estado:estado, items:items, u:t.u, vend:t.vend, dev:t.dev, mano:t.mano, vendido:t.vendido,
+    cobrado:cobrado, saldo:t.vendido - cobrado, notas:notas, pagos:pagos,
+    detalle:items.map(function(x){ return x.cant + 'x ' + tc(x.producto) + ' ' + x.sabor; }).join(' · ') };
+}
+function csgItems(a){
+  return (a || []).map(function(x){
+    return { id:String(x.id), producto:fixModel(x.producto), sabor:tc(x.sabor), cant:Math.round(Number(x.cant)) || 0, precio:Math.round(Number(x.precio)) || 0,
+      pvp:x.pvp == null ? null : Number(x.pvp), costo:x.costo == null ? null : Number(x.costo), vend:Math.round(Number(x.vend)) || 0, dev:Math.round(Number(x.dev)) || 0 };
+  });
+}
+function csgParse(rows){
+  return rows.map(function(r){
+    var items = [];
+    try{ items = JSON.parse(str(r.ITEMS) || '[]') || []; }catch(e){ items = []; }
+    return csgRow(str(r.ID).trim(), date(r.FECHA), str(r.REVENDEDOR).trim(), str(r.LUGAR).trim(), norm(str(r.ESTADO)) === 'CERRADA' ? 'CERRADA' : 'ABIERTA',
+      csgItems(items), num(r.COBRADO) || 0, str(r.NOTAS).trim(), str(r.PAGOS).trim());
+  }).filter(function(c){ return c.id; });
+}
+function csgFromServer(c, d){
+  return csgRow(c.id, d, c.revendedor, c.lugar, c.estado, csgItems(c.items), Number(c.cobrado) || 0, c.notas || '', c.pagos || '');
+}
+function csgApplyPend(){
+  if (!CSG.rows) return;
+  var now = Date.now();
+  Object.keys(CSG.pend).forEach(function(id){
+    var e = CSG.pend[id];
+    if (now - e.t > 120000){ delete CSG.pend[id]; return; }
+    var i = -1; CSG.rows.forEach(function(r, k){ if (r.id === id) i = k; });
+    if (e.del){ if (i >= 0) CSG.rows.splice(i, 1); return; }
+    if (i >= 0) CSG.rows[i] = e.row; else CSG.rows.push(e.row);
+  });
+}
+function csgLoad(){
+  if (CSG.loading) return;
+  CSG.loading = true;
+  loadTab('CONSIGNACIONES').then(function(rows){
+      /* si la pestaña no existe, Google devuelve la primera hoja (STOCK) */
+      var ok = !rows.length || rows.some(function(r){ return ('ITEMS' in r) && ('REVENDEDOR' in r); });
+      CSG.rows = ok ? csgParse(rows) : []; CSG.err = ok ? '' : 'sin pestaña'; },
+    function(e){ if (!CSG.rows) CSG.rows = []; CSG.err = e.message; })
+  .then(function(){ CSG.loading = false; csgApplyPend(); if (VIEW === 'consignacion') vConsig(); });
+}
+function csgVersion(){
+  if (CSG.ver != null || !admOk()) return;
+  CSG.ver = 0;
+  fetch(ADM.url + (ADM.url.indexOf('?') < 0 ? '?' : '&') + 't=' + Date.now()).then(function(r){ return r.text(); })
+    .then(function(t){ var j = JSON.parse(t); CSG.ver = Number(j.version) || 0; if (VIEW === 'consignacion') vConsig(); })
+    .catch(function(){ CSG.ver = null; });
+}
+function csgById(id){ return (CSG.rows || []).filter(function(r){ return r.id === id; })[0] || null; }
+
+/* ---------- escala de precios: cuanto más vende, más comisión ---------- */
+/* ventas de consignación de los últimos 30 días, por revendedor (salen de MOVIMIENTOS) */
+function csgSold30(){
+  var m = {}, since = Date.now() - 30 * DAY;
+  if (!DATA) return m;
+  DATA.ventas.forEach(function(v){
+    if (v.d < since || !/^Consignaci[oó]n /i.test(v.notas || '')) return;
+    var k = norm(v.cliente); m[k] = m[k] || { u:0, rev:0, profit:0 };
+    m[k].u += v.cant; m[k].rev += v.total; m[k].profit += v.profit || 0;
+  });
+  return m;
+}
+function csgTier(u){
+  var n = 0;
+  CSCFG.tiers.forEach(function(t, i){ if (u >= t.min) n = i; });
+  return n;
+}
+function csgTierOf(rev){ var s = csgSold30()[norm(rev)]; return csgTier(s ? s.u : 0); }
+/* precio que te paga por unidad: precio de tienda menos la comisión, nunca por debajo de tu piso */
+function csgPrecio(p, tier){
+  var pvp = isFinite(p.precio) ? p.precio : 0, pct = CSCFG.tiers[tier].pct;
+  var pr = Math.round(pvp * (1 - pct / 100) / 100) * 100, piso = false;
+  if (isFinite(p.costo) && p.costo > 0){
+    var min = Math.ceil(p.costo * (1 + CSCFG.piso / 100) / 100) * 100;
+    if (pr < min){ pr = Math.min(min, pvp || min); piso = true; }
+  }
+  return { precio:pr, piso:piso };
+}
+function csgModels(){
+  var m = {};
+  DATA.stock.forEach(function(p){
+    if (!isFinite(p.precio) || !(p.precio > 0)) return;
+    var k = p.modelo; m[k] = m[k] || { modelo:k, precio:p.precio, costos:[], stock:0 };
+    if (isFinite(p.costo) && p.costo > 0) m[k].costos.push(p.costo);
+    m[k].stock += stockN(p);
+    if (p.precio > m[k].precio) m[k].precio = p.precio;
+  });
+  return Object.keys(m).map(function(k){
+    var x = m[k]; x.costo = x.costos.length ? x.costos.reduce(function(s, c){ return s + c; }, 0) / x.costos.length : NaN; return x;
+  }).filter(function(x){ return x.stock > 0; }).sort(function(a, b){ return b.stock - a.stock; });
+}
+
+/* ---------- vista ---------- */
+function vConsig(){
+  if (CSG.rows === null){ if (!CSG.loading) csgLoad(); $('csg-kpis').innerHTML = '<div class="card s12"><div class="skel" style="height:90px"></div></div>'; return; }
+  csgVersion();
+  var R = CSG.rows, ab = R.filter(function(c){ return c.estado === 'ABIERTA'; });
+  var mano = ab.reduce(function(s, c){ return s + c.mano; }, 0);
+  var manoVal = ab.reduce(function(s, c){ return s + c.items.reduce(function(a, x){ return a + (x.cant - x.vend - x.dev) * x.precio; }, 0); }, 0);
+  var deuda = R.reduce(function(s, c){ return s + Math.max(0, c.saldo); }, 0), deudores = {};
+  R.forEach(function(c){ if (c.saldo > 0) deudores[norm(c.rev)] = 1; });
+  var S = csgSold30(), s30 = Object.keys(S).reduce(function(a, k){ a.u += S[k].u; a.rev += S[k].rev; a.profit += S[k].profit; return a; }, { u:0, rev:0, profit:0 });
+  var revs = {}; ab.forEach(function(c){ revs[norm(c.rev)] = 1; });
+  kpiRow($('csg-kpis'), [
+    { id:'cs1', label:'En la calle', icon:'box', val:mano, fmt:intf, note:mano ? 'valen ' + money(manoVal) + ' si se venden' : 'sin unidades afuera' },
+    { id:'cs2', label:'Te deben', icon:'receipt', val:deuda, fmt:moneyS, note:Object.keys(deudores).length + ' ' + plural(Object.keys(deudores).length, 'revendedor', 'revendedores') + ' con saldo' },
+    { id:'cs3', label:'Vendido en 30 días', icon:'money', val:s30.rev, fmt:moneyS, note:s30.u + ' u. · ganancia ' + money(s30.profit) },
+    { id:'cs4', label:'Revendedores activos', icon:'users', val:Object.keys(revs).length, fmt:intf, note:ab.length + ' ' + plural(ab.length, 'entrega abierta', 'entregas abiertas') }
+  ], 's3');
+  var warn = '';
+  if (admOk() && CSG.ver != null && CSG.ver > 0 && CSG.ver < 6) warn = '<div class="note" style="margin:0 0 12px"><b>Falta actualizar el script a la versión 6</b> para guardar consignaciones (hoy tenés la ' + CSG.ver + '). En <a class="link" href="#ajustes">Ajustes → Conexión</a>:' + FIX_VERSION + '</div>';
+  if (!admOk()) warn = '<div class="note" style="margin:0 0 12px">Para cargar consignaciones, primero conectá el panel en <a class="link" href="#ajustes">Ajustes → Conexión</a>.</div>';
+  if (CSG.err && !R.length) warn += '<div class="note" style="margin:0 0 12px">Todavía no hay consignaciones. La pestaña <b>CONSIGNACIONES</b> se crea sola en la planilla con la primera entrega que guardes.</div>';
+  $('csg-warn').innerHTML = warn;
+  var F = { abiertas:function(c){ return c.estado === 'ABIERTA'; }, deuda:function(c){ return c.saldo > 0; }, cerradas:function(c){ return c.estado === 'CERRADA'; }, todas:function(){ return true; } };
+  $('csg-f').innerHTML = [['abiertas','Abiertas'],['deuda','Con deuda'],['cerradas','Cerradas'],['todas','Todas']].map(function(x){
+    return '<button type="button" data-f="' + x[0] + '"' + (CSG.f === x[0] ? ' class="on"' : '') + '>' + x[1] + ' <small>' + R.filter(F[x[0]]).length + '</small></button>';
+  }).join('');
+  table('t-csg', [
+    { k:'rev', label:'Revendedor', get:function(r){ return r.rev + ' ' + r.lugar + ' ' + r.detalle; }, sv:function(r){ return r.rev; },
+      fmt:function(r){ return '<div class="cell-prod"><div><b>' + esc(r.rev || '—') + '</b><span>' + esc(r.lugar || 'Consignación') + '</span></div></div>'; } },
+    { k:'d', label:'Fecha', get:function(r){ return r.d; }, fmt:function(r){ return r.d ? fd(r.d) : '—'; } },
+    { k:'det', label:'Productos', get:function(r){ return r.detalle; }, fmt:function(r){ return '<span class="sub" style="white-space:normal">' + esc(r.detalle || '—') + '</span>'; } },
+    { k:'u', label:'Entregadas', num:true, get:function(r){ return r.u; } },
+    { k:'vend', label:'Vendidas', num:true, get:function(r){ return r.vend; }, fmt:function(r){ return '<span class="mbar"><i style="width:' + (r.u ? Math.round(r.vend / r.u * 100) : 0) + '%"></i></span>' + r.vend; } },
+    { k:'mano', label:'Tiene', num:true, cls:'strong', get:function(r){ return r.mano; } },
+    { k:'vendido', label:'Vendido', num:true, get:function(r){ return r.vendido; }, fmt:function(r){ return r.vendido ? money(r.vendido) : '<span class="sub">—</span>'; } },
+    { k:'saldo', label:'Te debe', num:true, get:function(r){ return r.saldo; }, fmt:function(r){ return r.saldo > 0 ? '<b>' + money(r.saldo) + '</b>' : r.vendido > 0 ? '<span class="pill p-ok">Al día</span>' : '<span class="sub">—</span>'; } },
+    { k:'est', label:'Estado', get:function(r){ return r.estado; }, fmt:function(r){ return r.estado === 'CERRADA' ? '<span class="pill p-gray">Cerrada</span>' : r.mano > 0 ? '<span class="pill p-new">Abierta</span>' : '<span class="pill p-low">Para cerrar</span>'; } }
+  ], R.filter(F[CSG.f]), { sort:'d', dir:'desc', search:'Buscar revendedor o producto', file:'consignaciones', page:25,
+    empty:R.length ? 'No hay consignaciones en este estado.' : 'Todavía no dejaste mercadería en consignación. Tocá <b>Nueva entrega</b>.',
+    onRow:function(r){ csgRendir(r); } });
+  csgRank(S);
+  csgPrecios();
+}
+function csgRank(S){
+  var m = {};
+  (CSG.rows || []).forEach(function(c){
+    var k = norm(c.rev); m[k] = m[k] || { name:c.rev, mano:0, saldo:0 };
+    if (c.estado === 'ABIERTA') m[k].mano += c.mano; m[k].saldo += Math.max(0, c.saldo);
+  });
+  var L = Object.keys(m).map(function(k){ var x = m[k], s = S[k] || { u:0, rev:0 }; x.val = s.u; x.rev = s.rev; x.tier = csgTier(s.u);
+    x.sub = 'Nivel ' + (x.tier + 1) + ' · ' + CSCFG.tiers[x.tier].pct + '% · tiene ' + x.mano + (x.saldo > 0 ? ' · debe ' + money(x.saldo) : ''); return x; })
+    .sort(function(a, b){ return b.val - a.val || b.mano - a.mano; });
+  if (!L.length){ $('csg-rank').innerHTML = '<li class="empty" style="display:block">Cuando cargues entregas, acá ves quién vende más y a quién conviene darle más mercadería.</li>'; return; }
+  hbars($('csg-rank'), L.slice(0, 8), function(it){ return it.val + ' u.'; }, function(it){ return money(it.rev); });
+}
+function csgPrecios(){
+  var T = CSCFG.tiers;
+  $('csg-tiers').innerHTML = T.map(function(t, i){
+    return '<div class="csg-tier"><span class="csg-n">Nivel ' + (i + 1) + '</span>' +
+      '<label>desde <input data-k="min" data-i="' + i + '" inputmode="numeric" value="' + t.min + '"' + (i === 0 ? ' disabled' : '') + '> u. en 30 días</label>' +
+      '<label>comisión <input data-k="pct" data-i="' + i + '" inputmode="numeric" value="' + t.pct + '"> %</label></div>';
+  }).join('') + '<div class="csg-tier wide"><span class="csg-n">Tu piso</span><label>nunca ganar menos de <input data-k="piso" inputmode="numeric" value="' + CSCFG.piso + '"> % sobre tu costo</label></div>';
+  var M = csgModels();
+  if (!M.length){ $('csg-precios').innerHTML = '<div class="empty-mini">Cargá productos con precio y stock para ver la tabla.</div>'; }
+  else {
+    $('csg-precios').innerHTML = '<div class="csg-scroll"><table class="mtable csg-pt"><thead><tr><th>Modelo</th><th class="n">Tienda</th>' +
+      T.map(function(t, i){ return '<th class="n">Nivel ' + (i + 1) + ' · ' + t.pct + '%</th>'; }).join('') + '</tr></thead><tbody>' +
+      M.map(function(x){
+        return '<tr><td><b>' + esc(tc(x.modelo)) + '</b><small>' + (isFinite(x.costo) ? 'costo ' + money(x.costo) : 'sin costo cargado') + '</small></td><td class="n">' + money(x.precio) + '</td>' +
+          T.map(function(t, i){
+            var r = csgPrecio(x, i), g = isFinite(x.costo) ? r.precio - x.costo : NaN;
+            return '<td class="n"><b>' + money(r.precio) + '</b>' + (r.piso ? ' <span class="pill p-low" title="Con esa comisión quedabas debajo de tu piso">piso</span>' : '') +
+              '<small>' + (isFinite(g) ? 'vos ' + money(g) + ' · ' : '') + 'él ' + money(x.precio - r.precio) + '</small></td>';
+          }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  $('csg-reglas').innerHTML = '<b>Cómo armar el trato:</b> él vende al mismo precio que la tienda (así no te pisa los precios) y te paga el precio de su nivel por cada unidad vendida. ' +
+    'Lo que no vende, vuelve. Rendición una vez por semana: sin rendir, no hay entrega nueva. Al que arranca dale pocas unidades (5 a 10) y subile cuando rinda bien. ' +
+    'El nivel sale solo de lo que vendió en los últimos 30 días.';
+}
+function csgFail(e){
+  if (e && e.setup){ needSetup(); return; }
+  var m = String(e && e.message || e);
+  if (/desconocida/i.test(m)) m = '<b>Falta actualizar el script a la versión 6.</b> En Ajustes → Conexión:' + FIX_VERSION;
+  else m = esc(m);
+  if ($('drawer').classList.contains('open') && $('dr-err')) drErr(m); else toast(m.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 140), { ms:6000 });
+}
+function csgRevList(){
+  var v = {}; (CSG.rows || []).forEach(function(c){ if (c.rev) v[c.rev] = 1; });
+  return '<datalist id="dl-revs">' + Object.keys(v).sort().map(function(n){ return '<option value="' + esc(n) + '">'; }).join('') + '</datalist>';
+}
+
+/* ---------- nueva entrega / editar entrega ---------- */
+function csgOpen(r, pre){
+  if (!DATA){ toast('Esperá a que carguen los datos'); return; }
+  var edit = !!(r && r.id);
+  CSO = edit ? { id:r.id, rev:r.rev, lugar:r.lugar, notas:r.notas, forzar:false,
+                 lines:r.items.map(function(x){ return { id:x.id, cant:x.cant, precio:x.precio, manual:true, vend:x.vend, dev:x.dev, base:x.cant }; }) }
+             : Object.assign({ id:'', rev:'', lugar:'', notas:'', forzar:false, lines:[] }, pre || {});
+  drawer({ kind:'consig', title:edit ? 'Entrega de ' + (CSO.rev || 'consignación') : 'Nueva entrega en consignación', sub:edit ? 'Cambiá precios o cantidades y guardá' : 'Las unidades salen de tu stock y quedan a nombre del revendedor',
+    body:'<div class="dr-sec dr-row"><div><label class="dr-lbl" for="csg-rev">Revendedor</label><input class="in" id="csg-rev" list="dl-revs" autocomplete="off" placeholder="Nombre y apellido" value="' + esc(CSO.rev) + '">' + csgRevList() + '</div>' +
+      '<div><label class="dr-lbl" for="csg-lugar">Dónde vende</label><input class="in" id="csg-lugar" placeholder="Boliche, zona, colegio…" value="' + esc(CSO.lugar) + '"></div></div>' +
+      '<div class="dr-note show" id="csg-nivel"></div>' +
+      '<div class="dr-sec"><label class="dr-lbl">Qué le dejás</label>' + pickerHTML('csg-pk', 'Buscá sabor o modelo') + '</div>' +
+      '<div class="dr-sec"><div class="lines" id="csg-lines"></div></div>' +
+      '<div class="dr-sec"><label class="dr-lbl" for="csg-notas">Notas</label><input class="in" id="csg-notas" placeholder="Cuándo rinde, qué acordaron…" value="' + esc(CSO.notas) + '"></div>',
+    foot:'<div class="dr-err" id="dr-err"></div><div class="total-row"><span id="csg-cnt">Sin productos</span><b id="csg-tot">$0</b></div>' +
+      '<button class="btn btn-sell btn-lg" id="dr-go" type="button"><svg class="icon"><use href="#i-check"/></svg>' + (edit ? 'Guardar cambios' : 'Entregar en consignación') + '</button>' });
+  var dirty = function(){ DR.dirty = true; };
+  $('csg-rev').addEventListener('input', function(){ CSO.rev = this.value; dirty(); csgNivel(true); });
+  $('csg-lugar').addEventListener('input', function(){ CSO.lugar = this.value; dirty(); });
+  $('csg-notas').addEventListener('input', function(){ CSO.notas = this.value; dirty(); });
+  var pk = pickerBind('csg-pk', { hint:'tocá para sumar',
+    count:function(p){ var l = CSO.lines.filter(function(x){ return String(x.id) === String(p.id); })[0]; return l ? l.cant : 0; },
+    onPick:function(p){
+      if (!p) return;
+      var l = CSO.lines.filter(function(x){ return String(x.id) === String(p.id); })[0];
+      if (l) l.cant++; else CSO.lines.push({ id:String(p.id), cant:1, precio:csgPrecio(p, csgTierOf(CSO.rev)).precio, manual:false, vend:0, dev:0, base:0 });
+      dirty(); csgLines();
+    } });
+  $('csg-lines').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-a]'); if (!b) return;
+    var i = +b.closest('.line').getAttribute('data-i'), l = CSO.lines[i]; if (!l) return;
+    var a = b.getAttribute('data-a'), min = Math.max(1, l.vend + l.dev);
+    if (a === 'plus') l.cant++;
+    if (a === 'minus') l.cant = Math.max(min, l.cant - 1);
+    if (a === 'del'){ if (l.vend + l.dev > 0){ toast('Ya rindió unidades de este producto: no se puede sacar'); return; } CSO.lines.splice(i, 1); }
+    dirty(); csgLines(); pk.draw();
+  });
+  $('csg-lines').addEventListener('input', function(e){
+    var el = e.target, a = el.getAttribute('data-a'); if (!a) return;
+    var i = +el.closest('.line').getAttribute('data-i'), l = CSO.lines[i]; if (!l) return;
+    if (a === 'cant'){ var n = intIn(el.value); if (n > 0) l.cant = Math.max(n, l.vend + l.dev); }
+    if (a === 'precio'){ var p = moneyIn(el.value); l.precio = isFinite(p) ? p : 0; l.manual = true; }
+    dirty(); csgTotalsUI();
+  });
+  $('dr-go').addEventListener('click', csgSave);
+  csgNivel(false); csgLines();
+  if (!edit && !CSO.rev) setTimeout(function(){ $('csg-rev').focus(); }, 250);
+}
+function csgNivel(reprice){
+  var el = $('csg-nivel'); if (!el) return;
+  var s = csgSold30()[norm(CSO.rev)], u = s ? s.u : 0, t = csgTier(u), nx = CSCFG.tiers[t + 1];
+  el.innerHTML = '<b>Nivel ' + (t + 1) + ' · comisión ' + CSCFG.tiers[t].pct + '%</b> · ' + (String(CSO.rev || '').trim() ? (u ? 'vendió ' + u + ' u. en los últimos 30 días' : 'todavía no rindió ventas') : 'poné el nombre para ver su nivel') +
+    (nx ? ' <small>· pasa a ' + nx.pct + '% cuando llegue a ' + nx.min + ' u.</small>' : '');
+  if (reprice){
+    CSO.lines.forEach(function(l){ if (l.manual) return; var p = prodById(l.id); if (p) l.precio = csgPrecio(p, t).precio; });
+    csgLines();
+  }
+}
+function csgLines(){
+  var box = $('csg-lines'); if (!box) return;
+  box.innerHTML = CSO.lines.length ? CSO.lines.map(function(l, i){
+    var p = prodById(l.id) || { sabor:'Producto ' + l.id, modelo:'', img:'', precio:NaN, costo:NaN, stock:0 };
+    var extra = l.cant - l.base, s = stockN(p);
+    return '<div class="line" data-i="' + i + '">' + imgTag(p.img, 88) +
+      '<div class="line-t"><b>' + esc(p.sabor) + '</b><span>' + esc(tc(p.modelo)) + (isFinite(p.precio) ? ' · tienda ' + money(p.precio) : '') + '</span></div>' +
+      '<button class="line-x" type="button" data-a="del" aria-label="Sacar"><svg class="icon"><use href="#i-x"/></svg></button>' +
+      '<div class="line-ctl"><div class="step"><button type="button" data-a="minus" aria-label="Menos">−</button><input data-a="cant" inputmode="numeric" value="' + l.cant + '" aria-label="Cantidad"><button type="button" data-a="plus" aria-label="Más">+</button></div>' +
+      '<label class="money-in"><span>te paga c/u</span><input data-a="precio" inputmode="numeric" value="' + fmtIn(l.precio) + '" aria-label="Precio que te paga por unidad"></label>' +
+      '<b class="line-tot" data-t></b></div>' +
+      '<div class="line-warn" data-w>' + (extra > s ? 'Hay ' + s + ' en stock y le estás dejando ' + extra : '') + '</div>' +
+      '<div class="line-hint" data-h></div></div>';
+  }).join('') : '<div class="empty-mini">Buscá arriba y tocá lo que le dejás.</div>';
+  csgTotalsUI();
+}
+function csgTotalsUI(){
+  var u = 0, tot = 0, gan = 0, sin = false;
+  CSO.lines.forEach(function(l, i){
+    var p = prodById(l.id), row = $('csg-lines').querySelector('.line[data-i="' + i + '"]');
+    u += l.cant; tot += l.cant * l.precio;
+    if (p && isFinite(p.costo)) gan += l.cant * (l.precio - p.costo); else sin = true;
+    if (!row) return;
+    row.querySelector('[data-t]').textContent = money(l.cant * l.precio);
+    var h = [];
+    if (p && isFinite(p.costo)) h.push('vos ganás <b>' + money(l.precio - p.costo) + '</b> c/u');
+    if (p && isFinite(p.precio)) h.push('él gana <b>' + money(p.precio - l.precio) + '</b> c/u');
+    if (p && isFinite(p.costo) && l.precio < p.costo) h.push('<b>ojo: es menos que tu costo</b>');
+    if (l.vend + l.dev > 0) h.push('ya rindió ' + (l.vend + l.dev));
+    row.querySelector('[data-h]').innerHTML = h.join(' · ');
+  });
+  $('csg-cnt').textContent = u ? u + ' ' + plural(u, 'unidad', 'unidades') + ' · si vende todo' + (sin ? '' : ', ganás ' + money(gan)) : 'Sin productos';
+  $('csg-tot').textContent = money(tot);
+}
+function csgSave(){
+  drErr('');
+  var rev = String(CSO.rev || '').trim();
+  if (!rev){ drErr('Poné el nombre del revendedor.'); $('csg-rev').focus(); return; }
+  var lines = CSO.lines.filter(function(l){ return l.cant > 0; });
+  if (!lines.length){ drErr('Sumá al menos un producto.'); return; }
+  if (lines.some(function(l){ return !(l.precio > 0); }) && !window.confirm('Hay un producto con precio $0. ¿Guardar igual?')) return;
+  var consig = { id:CSO.id, fecha:Date.now(), revendedor:rev, lugar:String(CSO.lugar || '').trim(), notas:String(CSO.notas || '').trim(),
+    items:lines.map(function(l){ return { id:l.id, cant:Math.round(l.cant), precio:Math.round(l.precio) }; }) };
+  drBusy(true, 'Guardando en la planilla…');
+  api('consig_guardar', { consig:consig, forzar:CSO.forzar }, CSO.op || (CSO.op = uid())).then(function(res){
+    var old = csgById(res.consig.id);
+    csgCommit(res, res.fecha ? new Date(res.fecha) : (old ? old.d : new Date()));
+    var u = lines.reduce(function(s, l){ return s + l.cant; }, 0);
+    drBusy(false); closeDrawer(true);
+    toast(CSO.id ? 'Entrega actualizada' : 'Entregado a ' + rev + ': ' + u + ' ' + plural(u, 'unidad', 'unidades'));
+    CSO = null;
+  }).catch(function(e){
+    drBusy(false); CSO.op = null;
+    if (e.data && e.data.sinStock){
+      drErr('<b>No alcanza el stock</b> de ' + e.data.sinStock.map(esc).join(', ') + '. Si ya se lo diste igual, guardalo y el stock queda en 0. <button class="btn btn-sm" type="button" id="csg-force">Guardar igual</button>');
+      $('csg-force').addEventListener('click', function(){ CSO.forzar = true; csgSave(); });
+      return;
+    }
+    csgFail(e);
+  });
+}
+/* lo que devuelve el script se ve al instante: la consignación, el stock y los movimientos */
+function csgCommit(res, d){
+  if (res.consig){ CSG.pend[res.consig.id] = { t:Date.now(), row:csgFromServer(res.consig, d) }; }
+  else if (res.id){ CSG.pend[res.id] = { t:Date.now(), del:true }; }
+  if (!CSG.rows) CSG.rows = [];
+  csgApplyPend();
+  if ((res.movs && res.movs.length) || (res.prods && res.prods.length)) commit({ movs:res.movs || [], prods:res.prods || [] });
+  else if (VIEW === 'consignacion') vConsig();
+  setTimeout(csgLoad, 4000);
+}
+
+/* ---------- rendición: vendió / devolvió / pagó ---------- */
+function csgRendir(r){
+  CSR = { id:r.id, row:r, cobro:0, pago:'', cerrar:false, lines:r.items.map(function(x){ return { id:x.id, vend:0, dev:0 }; }) };
+  var cerrada = r.estado === 'CERRADA';
+  drawer({ kind:'consig-rendir', title:r.rev || 'Consignación', sub:[r.lugar, r.d ? 'entregado el ' + fd(r.d) : '', cerrada ? 'cerrada' : ''].filter(Boolean).join(' · '),
+    body:'<div class="cierre"><div><small>Entregadas</small><b>' + r.u + '</b></div><div><small>Vendidas</small><b>' + r.vend + '</b></div><div><small>Tiene</small><b>' + r.mano + '</b></div><div><small>Te debe</small><b>' + money(Math.max(0, r.saldo)) + '</b></div></div>' +
+      (cerrada ? '<div class="note" style="margin:0 0 16px">Esta consignación está cerrada. Podés reabrirla si quedó algo por cargar.</div>'
+        : '<div class="dr-sec"><label class="dr-lbl">¿Qué pasó con lo que tenía?</label><div class="lines" id="csr-lines"></div></div>' +
+          '<div class="dr-sec dr-row"><div><label class="dr-lbl" for="csr-cobro">Te pagó ahora ($)</label><input class="in" id="csr-cobro" inputmode="numeric" placeholder="0"></div>' +
+          '<div><label class="dr-lbl" for="csr-pago">Forma de pago</label><select class="in" id="csr-pago"><option value="">—</option><option>Efectivo</option><option>Transferencia</option><option>MercadoPago</option></select></div></div>' +
+          '<div class="dr-sec" style="margin:-8px 0 14px"><button class="link" type="button" id="csr-todo">Pagó todo lo que debe</button></div>' +
+          '<label class="chk"><input type="checkbox" id="csr-cerrar"><span>Cerrar la consignación<small>Cuando ya no le queda nada y está todo pago</small></span></label>') +
+      (r.pagos ? '<div class="note" style="margin-top:12px"><b>Pagos:</b> ' + esc(r.pagos) + '</div>' : '') +
+      (r.notas ? '<div class="note" style="margin-top:12px"><b>Notas:</b> ' + esc(r.notas) + '</div>' : '') +
+      '<div class="dr-acts" style="margin-top:16px"><button class="btn btn-sm" type="button" id="csr-copy"><svg class="icon"><use href="#i-copy"/></svg>Copiar resumen</button>' +
+      (cerrada ? '' : '<button class="btn btn-sm" type="button" id="csr-edit"><svg class="icon"><use href="#i-edit"/></svg>Editar entrega</button>') + '</div>',
+    foot:'<div class="dr-err" id="dr-err"></div>' + (cerrada ? '<button class="btn btn-lg" id="dr-go" type="button">Reabrir consignación</button>'
+        : '<div class="total-row"><span id="csr-cnt">Sin cambios</span><b id="csr-tot">' + money(Math.max(0, r.saldo)) + '</b></div>' +
+          '<button class="btn btn-sell btn-lg" id="dr-go" type="button"><svg class="icon"><use href="#i-check"/></svg>Guardar rendición</button>') +
+      (!cerrada && r.vend === 0 && !(r.cobrado > 0) ? '<button class="link" type="button" id="csr-del" style="margin:10px auto 0;color:var(--muted)"><svg class="icon"><use href="#i-trash"/></svg>Eliminar entrega (vuelve todo al stock)</button>' : '') });
+  $('csr-copy').addEventListener('click', function(){ csgCopy(r); });
+  if (cerrada){
+    $('dr-go').addEventListener('click', function(){ csrSend({ reabrir:true }, 'Consignación reabierta'); });
+    return;
+  }
+  $('csr-edit').addEventListener('click', function(){ closeDrawer(true); csgOpen(r); });
+  if ($('csr-del')) $('csr-del').addEventListener('click', csgDelete);
+  $('csr-lines').innerHTML = r.items.map(function(x, i){
+    var p = prodById(x.id), q = x.cant - x.vend - x.dev;
+    return '<div class="line" data-i="' + i + '">' + imgTag(p ? p.img : '', 88) +
+      '<div class="line-t"><b>' + esc(x.sabor) + '</b><span>' + esc(tc(x.producto)) + ' · ' + money(x.precio) + ' c/u · ' + (q > 0 ? 'tiene <b style="display:inline;color:var(--ink)">' + q + '</b>' : 'no le queda') + '</span></div><span></span>' +
+      (q > 0 ? '<div class="line-ctl csr-ctl"><label>Vendió<div class="step"><button type="button" data-a="v-" aria-label="Menos">−</button><input data-a="v" inputmode="numeric" value="0" aria-label="Vendió"><button type="button" data-a="v+" aria-label="Más">+</button></div></label>' +
+        '<label>Devolvió<div class="step"><button type="button" data-a="d-" aria-label="Menos">−</button><input data-a="d" inputmode="numeric" value="0" aria-label="Devolvió"><button type="button" data-a="d+" aria-label="Más">+</button></div></label>' +
+        '<button class="link" type="button" data-a="all">Vendió todo</button></div>' : '') + '</div>';
+  }).join('');
+  function clamp(i){
+    var x = r.items[i], l = CSR.lines[i], q = x.cant - x.vend - x.dev;
+    l.vend = Math.max(0, Math.min(q, l.vend)); l.dev = Math.max(0, Math.min(q - l.vend, l.dev));
+    var row = $('csr-lines').querySelector('.line[data-i="' + i + '"]');
+    var iv = row.querySelector('input[data-a=v]'), id = row.querySelector('input[data-a=d]');
+    if (iv && document.activeElement !== iv) iv.value = l.vend; if (id && document.activeElement !== id) id.value = l.dev;
+    DR.dirty = true; csrTotals();
+  }
+  $('csr-lines').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-a]'); if (!b) return;
+    var i = +b.closest('.line').getAttribute('data-i'), l = CSR.lines[i], a = b.getAttribute('data-a'), x = r.items[i];
+    if (a === 'v+') l.vend++; if (a === 'v-') l.vend--; if (a === 'd+') l.dev++; if (a === 'd-') l.dev--;
+    if (a === 'all'){ l.dev = 0; l.vend = x.cant - x.vend - x.dev; }
+    clamp(i);
+  });
+  $('csr-lines').addEventListener('input', function(e){
+    var el = e.target, a = el.getAttribute('data-a'); if (a !== 'v' && a !== 'd') return;
+    var i = +el.closest('.line').getAttribute('data-i'), n = intIn(el.value);
+    CSR.lines[i][a === 'v' ? 'vend' : 'dev'] = isFinite(n) ? n : 0; clamp(i);
+  });
+  $('csr-lines').addEventListener('focusout', function(e){ var l = e.target.closest('.line'); if (l) clamp(+l.getAttribute('data-i')); });
+  $('csr-cobro').addEventListener('input', function(){ var n = moneyIn(this.value); CSR.cobro = isFinite(n) ? n : 0; DR.dirty = true; csrTotals(); });
+  $('csr-pago').addEventListener('change', function(){ CSR.pago = this.value; });
+  $('csr-todo').addEventListener('click', function(){ CSR.cobro = Math.max(0, csrAfter().saldo + CSR.cobro); $('csr-cobro').value = fmtIn(CSR.cobro); DR.dirty = true; csrTotals(); });
+  $('csr-cerrar').addEventListener('change', function(){ CSR.cerrar = this.checked; });
+  $('dr-go').addEventListener('click', function(){
+    var a = csrAfter();
+    if (!a.v && !a.d && !(CSR.cobro > 0) && !CSR.cerrar){ drErr('Marcá cuánto vendió, cuánto devolvió o cuánto te pagó.'); return; }
+    if (CSR.cerrar && a.mano > 0){ drErr('Todavía le quedan ' + a.mano + ' unidades. Marcalas como vendidas o devueltas para cerrar.'); return; }
+    if (CSR.cerrar && a.saldo > 0 && !window.confirm('Te queda debiendo ' + money(a.saldo) + '. ¿Cerrar igual?')) return;
+    csrSend({ items:CSR.lines.filter(function(l){ return l.vend || l.dev; }).map(function(l){ return { id:l.id, vend:l.vend, dev:l.dev }; }),
+      cobro:Math.round(CSR.cobro || 0), pago:CSR.pago, cerrar:CSR.cerrar, fecha:Date.now() },
+      'Rendición guardada' + (a.v ? ' · ' + a.v + ' ' + plural(a.v, 'vendida', 'vendidas') : '') + (CSR.cobro > 0 ? ' · cobraste ' + money(CSR.cobro) : ''));
+  });
+}
+function csrAfter(){
+  var r = CSR.row, v = 0, d = 0, plata = 0;
+  CSR.lines.forEach(function(l, i){ v += l.vend; d += l.dev; plata += l.vend * r.items[i].precio; });
+  return { v:v, d:d, plata:plata, mano:r.mano - v - d, saldo:r.saldo + plata - (CSR.cobro || 0) };
+}
+function csrTotals(){
+  var a = csrAfter(), t = [];
+  if (a.v) t.push('vendió ' + a.v + ' (' + money(a.plata) + ')');
+  if (a.d) t.push('devuelve ' + a.d);
+  if (CSR.cobro > 0) t.push('paga ' + money(CSR.cobro));
+  $('csr-cnt').textContent = t.length ? t.join(' · ').replace(/^./, function(c){ return c.toUpperCase(); }) + ' · le quedan ' + a.mano + ' · saldo' : 'Sin cambios · saldo';
+  $('csr-tot').textContent = money(Math.max(0, a.saldo));
+  var ch = $('csr-cerrar');
+  if (ch && a.mano === 0 && a.saldo <= 0 && (a.v || a.d || CSR.cobro > 0) && !ch.dataset.t){ ch.checked = true; CSR.cerrar = true; ch.dataset.t = 1; }
+}
+function csrSend(datos, ok){
+  drErr(''); drBusy(true, 'Guardando en la planilla…');
+  var row = CSR.row;
+  api('consig_rendir', Object.assign({ id:CSR.id }, datos), CSR.op || (CSR.op = uid())).then(function(res){
+    csgCommit(res, row.d);
+    drBusy(false); closeDrawer(true); CSR = null; toast(ok);
+  }).catch(function(e){ drBusy(false); if (CSR) CSR.op = null; csgFail(e); });
+}
+function csgDelete(){
+  if (!CSR) return;
+  if (!window.confirm('¿Eliminar esta entrega de ' + (CSR.row.rev || 'este revendedor') + '? Las ' + CSR.row.mano + ' unidades vuelven al stock.')) return;
+  var b = $('csr-del'); b.disabled = true;
+  api('consig_eliminar', { id:CSR.id }).then(function(res){
+    csgCommit(res); closeDrawer(true); CSR = null; toast('Entrega eliminada: el stock volvió');
+  }).catch(function(e){ b.disabled = false; csgFail(e); });
+}
+function csgCopy(r){
+  var txt = 'CONSIGNACIÓN V4PE CREW · ' + r.rev + (r.d ? ' · ' + fd(r.d) : '') + '\n' +
+    r.items.map(function(x){ var q = x.cant - x.vend - x.dev; return '- ' + tc(x.producto) + ' ' + x.sabor + ': te dejé ' + x.cant + (x.vend ? ', vendiste ' + x.vend : '') + (x.dev ? ', devolviste ' + x.dev : '') + ', tenés ' + q + ' · ' + money(x.precio) + ' c/u'; }).join('\n') +
+    '\nVendido: ' + money(r.vendido) + ' · Pagado: ' + money(r.cobrado) + '\nSaldo: ' + money(Math.max(0, r.saldo));
+  copiar(txt, 'Resumen copiado: pegalo en WhatsApp');
+}
+
+$('csg-new').addEventListener('click', function(){ csgOpen(null); });
+$('csg-f').addEventListener('click', function(e){ var b = e.target.closest('[data-f]'); if (!b) return; CSG.f = b.getAttribute('data-f'); vConsig(); });
+$('csg-tiers').addEventListener('change', function(e){
+  var el = e.target, k = el.getAttribute('data-k'); if (!k) return;
+  var n = parseFloat(String(el.value).replace(',', '.'));
+  if (!isFinite(n) || n < 0){ csgPrecios(); return; }
+  if (k === 'piso') CSCFG.piso = Math.min(200, n);
+  else { var i = +el.getAttribute('data-i'); CSCFG.tiers[i][k] = k === 'pct' ? Math.min(90, n) : Math.round(n); CSCFG.tiers[0].min = 0; CSCFG.tiers.sort(function(a, b){ return a.min - b.min; }); }
+  csgSaveCfg(); vConsig(); toast('Escala guardada en este dispositivo');
+});
+$('refresh').addEventListener('click', function(){ if (VIEW === 'consignacion') csgLoad(); });
+
+/* =============================================================
+   ASISTENTE IA · chat que responde con tus datos y propone cambios
+   El panel arma un resumen (ventas, stock, clientes, consignaciones)
+   y se lo manda a Gemini a través del script ADMIN (v6, acción "ia").
+   Nada se escribe en la planilla sin que toques Confirmar.
+   ============================================================= */
+var IA = { msgs:[], busy:false, open:false, last:'' };
+try{ IA.msgs = JSON.parse(sessionStorage.getItem('vc_ia_chat') || '[]') || []; }catch(e){ IA.msgs = []; }
+function iaStore(){ try{ sessionStorage.setItem('vc_ia_chat', JSON.stringify(IA.msgs.slice(-40))); }catch(e){} }
+var IA_VISTAS = { resumen:'Resumen', metas:'Metas semanales', ventas:'Ventas', productos:'Productos', stock:'Stock', clientes:'Clientes', web:'Web', perfumes:'Perfumes',
+  consignacion:'Consignación', catalogo:'Catálogo de la tienda', compras:'Compras / Lotes', movimientos:'Movimientos', calculadora:'Calculadora de precio', comparar:'Comparar productos', revisar:'Revisar planilla', ajustes:'Ajustes' };
+
+/* ---------- lo que sabe la IA: un resumen de los datos del panel ---------- */
+function iaContexto(){
+  var now = new Date(), L = [], D = DATA;
+  L.push('AHORA: ' + DIAS_L[now.getDay()] + ' ' + fdt(now) + ' (hora de Mendoza, Argentina).');
+  L.push('META MENSUAL: ' + money(CFG.meta) + ' · META SEMANAL: ' + money(CFG.msem) + ' · stock bajo = ' + CFG.bajo + ' unidades o menos.');
+  if (!D){ L.push('Todavía no cargaron los datos de la planilla.'); return L.join('\n'); }
+  var t0 = sod(now), per = function(name, a, b){
+    var s = sum(D.ventas.filter(function(v){ return v.d >= a && v.d < b; }));
+    return name + ': facturación ' + money(s.rev) + ', ganancia ' + money(s.profit) + ', ' + s.units + ' unidades, ' + s.n + ' ventas';
+  };
+  var m0 = new Date(now.getFullYear(), now.getMonth(), 1), pm0 = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  L.push('', 'RESUMEN DE VENTAS:',
+    per('Hoy', t0, new Date(+t0 + DAY)), per('Ayer', new Date(+t0 - DAY), t0), per('Últimos 7 días', new Date(+t0 - 6 * DAY), new Date(+t0 + DAY)),
+    per('Últimos 30 días', new Date(+t0 - 29 * DAY), new Date(+t0 + DAY)), per('Este mes', m0, new Date(+t0 + DAY)), per('Mes pasado', pm0, m0),
+    per('Todo el historial', new Date(0), new Date(+t0 + DAY)));
+  var dias = [];
+  for (var i = 29; i >= 0; i--){ var a = new Date(+t0 - i * DAY), s = sum(D.ventas.filter(function(v){ return v.d >= a && v.d < new Date(+a + DAY); })); dias.push(fd(a) + ' ' + DIAS[a.getDay()] + ': ' + money(s.rev) + ' (' + s.units + 'u)'); }
+  L.push('', 'FACTURACIÓN POR DÍA (últimos 30):', dias.join(' | '));
+  L.push('', 'STOCK (id | modelo | sabor | precio | costo | stock | vendidos en 30 días):');
+  D.stock.forEach(function(p){
+    L.push([p.id, p.modelo, p.sabor, isFinite(p.precio) ? money(p.precio) : 'sin precio', isFinite(p.costo) ? money(p.costo) : 'sin costo', isFinite(p.stock) ? p.stock : 'sin cargar', p.sold30].join(' | '));
+  });
+  var cli = {}, since = Date.now() - 90 * DAY;
+  D.ventas.forEach(function(v){
+    if (!v.cliente) return;
+    var k = norm(v.cliente), c = cli[k] = cli[k] || { n:tc(v.cliente), rev:0, u:0, r90:0, last:v.d, ped:{} };
+    c.rev += v.total; c.u += v.cant; if (v.d >= since) c.r90 += v.total; if (v.d > c.last) c.last = v.d; c.ped[pedKey(v)] = 1;
+  });
+  var top = Object.keys(cli).map(function(k){ return cli[k]; }).sort(function(a, b){ return b.rev - a.rev; }).slice(0, 40);
+  L.push('', 'CLIENTES (los 40 que más compraron; nombre | total histórico | unidades | compras | últimos 90 días | última compra):');
+  top.forEach(function(c){ L.push([c.n, money(c.rev), c.u, Object.keys(c.ped).length, money(c.r90), fd(c.last) + ' (' + daysAgo(c.last) + ')'].join(' | ')); });
+  L.push('Clientes distintos en total: ' + Object.keys(cli).length + '.');
+  L.push('', 'ÚLTIMAS 50 VENTAS (fecha | cliente | cantidad x producto | total | notas):');
+  D.ventas.slice(-50).reverse().forEach(function(v){ L.push([fdt(v.d), v.cliente || 'sin nombre', v.cant + 'x ' + v.modelo + ' ' + v.sabor, money(v.total), v.notas || ''].join(' | ')); });
+  var ch = checksList().filter(function(c){ return !c.ok; });
+  L.push('', 'PARA REVISAR EN LA PLANILLA:');
+  if (!ch.length) L.push('Nada, está todo en orden.');
+  ch.forEach(function(c){ L.push('- ' + c.t + '. ' + String(c.d || '').replace(/<[^>]+>/g, '') + (c.items && c.items.length ? ' Casos: ' + c.items.slice(0, 12).join('; ') : '')); });
+  L.push('', 'CONSIGNACIÓN (mercadería que se deja a revendedores; él vende al precio de la tienda y paga el precio acordado por unidad vendida):');
+  L.push('Escala: ' + CSCFG.tiers.map(function(t, i){ return 'nivel ' + (i + 1) + ' desde ' + t.min + ' u. vendidas en 30 días = ' + t.pct + '% de comisión'; }).join('; ') + '. Piso: ganar al menos ' + CSCFG.piso + '% sobre el costo.');
+  if (CSG.rows === null) L.push('(las consignaciones todavía no cargaron)');
+  else if (!CSG.rows.length) L.push('No hay consignaciones cargadas.');
+  else CSG.rows.forEach(function(c){
+    L.push([c.id, c.rev, c.lugar || '-', c.estado, 'entregado ' + (c.d ? fd(c.d) : '?'), 'tiene ' + c.mano, 'vendió ' + c.vend, 'devolvió ' + c.dev, 'vendido ' + money(c.vendido), 'pagó ' + money(c.cobrado), 'debe ' + money(Math.max(0, c.saldo))].join(' | ') +
+      ' | productos: ' + c.items.map(function(x){ return 'id ' + x.id + ' ' + x.producto + ' ' + x.sabor + ' (dejé ' + x.cant + ', tiene ' + (x.cant - x.vend - x.dev) + ', ' + money(x.precio) + ' c/u)'; }).join('; '));
+  });
+  if (PRF.rows && PRF.rows.length){
+    var act = PRF.rows.filter(prfActive), pend = PRF.rows.filter(prfEnc), okp = PRF.rows.filter(function(p){ return p.estado !== 'CANCELADO'; });
+    L.push('', 'PERFUMES: ' + act.length + ' pedidos activos, ' + pend.reduce(function(s, p){ return s + p.u; }, 0) + ' perfumes para encargar al proveedor, facturación ' +
+      money(okp.reduce(function(s, p){ return s + p.total; }, 0)) + ', falta cobrar ' + money(okp.reduce(function(s, p){ return s + Math.max(0, p.total - p.cobrado); }, 0)) + '.');
+    act.slice(0, 25).forEach(function(p){ L.push('- ' + [p.cliente, p.estado, p.detalle, money(p.total), 'cobrado ' + money(p.cobrado)].join(' | ')); });
+  }
+  return L.join('\n');
+}
+function iaSistema(){
+  return 'Sos el asistente del panel de administración de V4PE CREW, un delivery de v4pes descartables y perfumes en Mendoza, Argentina. ' +
+    'Hablás con el dueño. Respondé en español rioplatense (voseo), corto y directo, sin emojis y sin relleno. La plata se escribe así: $26.500.\n' +
+    'Usá SOLO los datos de abajo. Si algo no está en los datos, decilo; nunca inventes números, clientes ni productos. Si te piden una opinión o un consejo de negocio, dalo apoyándote en los datos.\n\n' +
+    'FORMATO DE RESPUESTA: devolvé únicamente un objeto JSON, sin texto antes ni después:\n' +
+    '{"texto":"tu respuesta","acciones":[]}\n' +
+    'En "texto" podés usar **negrita** y listas con líneas que empiezan con "- ".\n\n' +
+    'ACCIONES: cuando el dueño te pide HACER algo en la planilla, agregá la acción en "acciones". El panel se la muestra y él toca Confirmar: vos nunca digas que ya está hecho, decí que la dejaste lista para confirmar. ' +
+    'Si falta un dato (qué sabor, cuántas unidades, a nombre de quién) o hay más de un producto posible, preguntá en "texto" y no propongas nada. Usá siempre el id de la lista STOCK. Tipos de acción:\n' +
+    '- Venta: {"tipo":"venta","cliente":"Nombre","pago":"Efectivo|Transferencia|","notas":"","forzar":false,"items":[{"id":"12","cantidad":2,"precio":26500}]} · "precio" es por unidad y es opcional (si falta va el precio de lista). "forzar":true solo si él dice que la registres aunque no alcance el stock.\n' +
+    '- Cargar stock que llegó: {"tipo":"ingreso","items":[{"id":"12","cantidad":10,"costo":12000}]} · "costo" por unidad, opcional.\n' +
+    '- Corregir un producto: {"tipo":"producto","id":"12","cambios":{"precio":27000,"costo":13000,"stock":8,"sabor":"Blue Razz","producto":"ICEKING 40K"}} · poné solo los campos que cambian.\n' +
+    '- Entregar en consignación: {"tipo":"consignacion","revendedor":"Nombre","lugar":"","items":[{"id":"12","cantidad":5,"precio":22500}]} · "precio" es lo que te paga por unidad, opcional (si falta va el de su nivel).\n' +
+    '- Rendición de una consignación: {"tipo":"rendicion","consig":"CS…","items":[{"id":"12","vendidas":3,"devueltas":1}],"cobro":67500,"pago":"Efectivo","cerrar":false}\n' +
+    '- Abrir una pantalla: {"tipo":"ir","vista":"stock"} · vistas: ' + Object.keys(IA_VISTAS).join(', ') + '.\n' +
+    'Lo que NO podés hacer desde acá: editar o borrar ventas ya cargadas (se hace tocando la venta en Ventas), subir fotos, crear productos nuevos y cargar pedidos de perfumes (eso va en la vista Perfumes). Si te lo piden, explicá dónde se hace y, si sirve, proponé la acción "ir".\n' +
+    'Si te piden ordenar o arreglar, mirá PARA REVISAR y proponé las correcciones que se puedan hacer con acciones; lo que no se pueda (por ejemplo un costo que no sabés), pedí el dato.\n\n' +
+    '===== DATOS DEL PANEL =====\n' + iaContexto();
+}
+
+/* ---------- acciones que propone la IA ---------- */
+function iaProd(id){ var p = DATA ? prodById(String(id).replace(/[.,]0+$/, '').trim()) : null; if (!p) throw new Error('No existe el producto con id ' + id); return p; }
+function iaN(v){ var n = typeof v === 'number' ? v : moneyIn(String(v == null ? '' : v)); return isFinite(n) ? n : NaN; }
+function iaName(p){ return esc(p.sabor) + ' <small>' + esc(tc(p.modelo)) + '</small>'; }
+/* valida la acción contra los datos y arma cómo se muestra y cómo se ejecuta */
+function iaPlan(a){
+  var t = norm(a && a.tipo).toLowerCase();
+  if (t === 'ir'){
+    var v = String(a.vista || '').toLowerCase();
+    if (!IA_VISTAS[v]) throw new Error('No conozco la pantalla ' + a.vista);
+    return { nav:v, title:'Abrir ' + IA_VISTAS[v] };
+  }
+  if (!DATA) throw new Error('Todavía no cargaron los datos');
+  if (t === 'venta' || t === 'ingreso' || t === 'consignacion'){
+    var items = (a.items || []).map(function(i){
+      var p = iaProd(i.id), c = Math.round(iaN(i.cantidad));
+      if (!(c > 0)) throw new Error('Cantidad inválida para ' + p.sabor);
+      return { p:p, cant:c, precio:iaN(i.precio), costo:iaN(i.costo) };
+    });
+    if (!items.length) throw new Error('La acción no tiene productos');
+    if (t === 'venta'){
+      items.forEach(function(i){ if (!isFinite(i.precio) || i.precio < 0) i.precio = isFinite(i.p.precio) ? i.p.precio : 0; });
+      var tot = items.reduce(function(s, i){ return s + i.cant * i.precio; }, 0), cli = String(a.cliente || '').trim(), pago = String(a.pago || '').trim();
+      var notas = [pago, String(a.notas || '').trim()].filter(Boolean).join(' · ');
+      return { icon:'zap', title:'Registrar venta', lines:items.map(function(i){ return i.cant + ' × ' + iaName(i.p) + ' · ' + money(i.precio) + ' c/u' + (i.cant > stockN(i.p) ? ' <b>(hay ' + stockN(i.p) + ')</b>' : ''); }),
+        foot:'Total ' + money(tot) + ' · ' + (cli ? esc(cli) : 'sin cliente') + (notas ? ' · ' + esc(notas) : ''),
+        run:function(){
+          return api('venta', { items:items.map(function(i){ return { id:i.p.id, cantidad:i.cant, precio:Math.round(i.precio), total:Math.round(i.precio * i.cant) }; }),
+            cliente:cli, notas:notas, fecha:Date.now(), forzar:!!a.forzar, whatsapp:'', canje:'' }).then(function(res){ commit(res); return 'Venta registrada · ' + money(tot); });
+        } };
+    }
+    if (t === 'ingreso'){
+      var conCosto = items.some(function(i){ return i.costo > 0; }), u = items.reduce(function(s, i){ return s + i.cant; }, 0);
+      return { icon:'plus', title:'Cargar stock', lines:items.map(function(i){ return '+' + i.cant + ' ' + iaName(i.p) + (i.costo > 0 ? ' · costo ' + money(i.costo) : '') + ' · queda en ' + (stockN(i.p) + i.cant); }),
+        foot:u + ' ' + plural(u, 'unidad', 'unidades') + (conCosto ? ' · actualiza el costo y anota el lote en Compras' : ''),
+        run:function(){
+          return api('ingreso', { items:items.map(function(i){ return { id:i.p.id, cantidad:i.cant, costo:i.costo > 0 ? i.costo : '', precio:'' }; }),
+            actualizarCosto:conCosto, actualizarPrecio:false, compra:conCosto, margen:35, notas:'' }).then(function(res){ commit(res); return 'Stock cargado: +' + u; });
+        } };
+    }
+    var rev = String(a.revendedor || '').trim();
+    if (!rev) throw new Error('Falta el nombre del revendedor');
+    var tier = csgTierOf(rev);
+    items.forEach(function(i){ if (!isFinite(i.precio) || i.precio < 0) i.precio = csgPrecio(i.p, tier).precio; });
+    var uc = items.reduce(function(s, i){ return s + i.cant; }, 0), tc2 = items.reduce(function(s, i){ return s + i.cant * i.precio; }, 0);
+    return { icon:'hand', title:'Entregar en consignación', lines:items.map(function(i){ return i.cant + ' × ' + iaName(i.p) + ' · te paga ' + money(i.precio) + ' c/u' + (i.cant > stockN(i.p) ? ' <b>(hay ' + stockN(i.p) + ')</b>' : ''); }),
+      foot:esc(rev) + ' · nivel ' + (tier + 1) + ' · ' + uc + ' u. · si vende todo ' + money(tc2),
+      run:function(){
+        return api('consig_guardar', { consig:{ id:'', fecha:Date.now(), revendedor:rev, lugar:String(a.lugar || '').trim(), notas:'',
+          items:items.map(function(i){ return { id:i.p.id, cant:i.cant, precio:Math.round(i.precio) }; }) }, forzar:!!a.forzar })
+          .then(function(res){ csgCommit(res, new Date(res.fecha || Date.now())); return 'Entregado a ' + rev + ': ' + uc + ' u.'; });
+      } };
+  }
+  if (t === 'producto'){
+    var p = iaProd(a.id), c = {}, ls = [], src = a.cambios || {};
+    [['precio','Precio', true], ['costo','Costo', true], ['stock','Stock', false]].forEach(function(k){
+      if (!(k[0] in src) || src[k[0]] === null || src[k[0]] === '') return;
+      var n = iaN(src[k[0]]); if (!isFinite(n) || n < 0) throw new Error(k[1] + ' inválido');
+      c[k[0]] = Math.round(n); ls.push(k[1] + ': ' + (isFinite(p[k[0]]) ? (k[2] ? money(p[k[0]]) : p[k[0]]) : 'vacío') + ' → <b>' + (k[2] ? money(n) : Math.round(n)) + '</b>');
+    });
+    if (src.sabor && String(src.sabor).trim()){ c.sabor = String(src.sabor).trim(); ls.push('Sabor: ' + esc(p.sabor) + ' → <b>' + esc(c.sabor) + '</b>'); }
+    if (src.producto && String(src.producto).trim()){ c.producto = String(src.producto).trim(); ls.push('Modelo: ' + esc(p.modelo) + ' → <b>' + esc(c.producto) + '</b>'); }
+    if (!ls.length) throw new Error('La corrección no cambia nada');
+    return { icon:'edit', title:'Corregir ' + p.sabor + ' (' + tc(p.modelo) + ')', lines:ls, foot:'Cambia la pestaña STOCK; la tienda lo toma sola',
+      run:function(){ return api('producto_editar', { id:p.id, cambios:c }).then(function(res){ commit(res); return 'Producto actualizado'; }); } };
+  }
+  if (t === 'rendicion'){
+    var row = csgById(String(a.consig || '').trim());
+    if (!row) throw new Error('No encontré la consignación ' + a.consig);
+    var its = (a.items || []).map(function(i){
+      var x = row.items.filter(function(z){ return String(z.id) === String(i.id).replace(/[.,]0+$/, '').trim(); })[0];
+      if (!x) throw new Error('Ese producto no está en la consignación de ' + row.rev);
+      var v = Math.max(0, Math.round(iaN(i.vendidas) || 0)), d = Math.max(0, Math.round(iaN(i.devueltas) || 0));
+      if (v + d > x.cant - x.vend - x.dev) throw new Error(x.sabor + ': le quedan ' + (x.cant - x.vend - x.dev));
+      return { x:x, vend:v, dev:d };
+    }).filter(function(i){ return i.vend || i.dev; });
+    var cobro = Math.max(0, Math.round(iaN(a.cobro) || 0));
+    if (!its.length && !cobro && !a.cerrar) throw new Error('La rendición está vacía');
+    var plata = its.reduce(function(s, i){ return s + i.vend * i.x.precio; }, 0);
+    return { icon:'receipt', title:'Rendición de ' + row.rev, lines:its.map(function(i){ return esc(i.x.sabor) + ': ' + [i.vend ? 'vendió ' + i.vend : '', i.dev ? 'devolvió ' + i.dev : ''].filter(Boolean).join(', '); })
+        .concat(cobro ? ['Te paga ' + money(cobro) + (a.pago ? ' · ' + esc(a.pago) : '')] : []).concat(a.cerrar ? ['Cierra la consignación'] : []),
+      foot:'Saldo después: ' + money(Math.max(0, row.saldo + plata - cobro)),
+      run:function(){
+        return api('consig_rendir', { id:row.id, items:its.map(function(i){ return { id:i.x.id, vend:i.vend, dev:i.dev }; }), cobro:cobro, pago:String(a.pago || ''), cerrar:!!a.cerrar, fecha:Date.now() })
+          .then(function(res){ csgCommit(res, row.d); return 'Rendición guardada'; });
+      } };
+  }
+  throw new Error('No sé hacer la acción "' + (a && a.tipo) + '"');
+}
+
+/* ---------- conversación ---------- */
+function iaParse(txt){
+  var s = String(txt || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim(), o = null;
+  try{ o = JSON.parse(s); }catch(e){ var m = s.match(/\{[\s\S]*\}/); if (m){ try{ o = JSON.parse(m[0]); }catch(e2){} } }
+  if (Array.isArray(o)) o = o[0];
+  if (!o || typeof o !== 'object') return { texto:s, acciones:[] };
+  return { texto:String(o.texto == null ? '' : o.texto), acciones:Array.isArray(o.acciones) ? o.acciones.slice(0, 12) : [] };
+}
+function iaHist(){
+  return IA.msgs.filter(function(m){ return !m.err; }).slice(-14).map(function(m){
+    var t = m.texto || '';
+    if (m.rol === 'ia' && m.acciones && m.acciones.length) t += '\n[Acciones que propusiste: ' + m.acciones.map(function(a){
+      return JSON.stringify(a.a) + ' → ' + (a.st === 'ok' ? 'CONFIRMADA Y GUARDADA' : a.st === 'no' ? 'DESCARTADA por el dueño' : a.st === 'err' ? 'FALLÓ: ' + a.msg : 'todavía sin confirmar'); }).join(' ; ') + ']';
+    return { rol:m.rol, texto:t };
+  });
+}
+function iaFmt(t){
+  var out = [], ul = false;
+  esc(String(t || '').trim()).split(/\n/).forEach(function(l){
+    var b = l.match(/^\s*(?:[-•*]|\d+[.)])\s+(.*)$/);
+    l = (b ? b[1] : l).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+    if (b){ if (!ul){ out.push('<ul>'); ul = true; } out.push('<li>' + l + '</li>'); return; }
+    if (ul){ out.push('</ul>'); ul = false; }
+    if (l.trim()) out.push('<p>' + l + '</p>');
+  });
+  if (ul) out.push('</ul>');
+  return out.join('');
+}
+function iaActHTML(m, mi){
+  return (m.acciones || []).map(function(x, ai){
+    var pl; try{ pl = iaPlan(x.a); }catch(e){ return '<div class="ia-act bad"><div class="ia-act-h"><svg class="icon"><use href="#i-alert"/></svg><b>No pude preparar esta acción</b></div><div class="ia-act-t">' + esc(e.message) + '</div></div>'; }
+    if (pl.nav) return '<button class="btn btn-sm ia-nav" type="button" data-nav="' + pl.nav + '"><svg class="icon"><use href="#i-up"/></svg>' + esc(pl.title) + '</button>';
+    var st = x.st || 'pend';
+    return '<div class="ia-act ' + st + '" data-m="' + mi + '" data-a="' + ai + '"><div class="ia-act-h"><svg class="icon"><use href="#i-' + pl.icon + '"/></svg><b>' + esc(pl.title) + '</b></div>' +
+      '<ul>' + pl.lines.map(function(l){ return '<li>' + l + '</li>'; }).join('') + '</ul><div class="ia-act-t">' + pl.foot + '</div>' +
+      (st === 'pend' ? '<div class="ia-act-b"><button class="btn btn-sm btn-sell" type="button" data-do="ok"><svg class="icon"><use href="#i-check"/></svg>Confirmar</button><button class="btn btn-sm" type="button" data-do="no">Descartar</button></div>'
+        : st === 'run' ? '<div class="ia-act-s"><span class="spin-i dark"></span>Guardando en la planilla…</div>'
+        : st === 'ok' ? '<div class="ia-act-s ok"><svg class="icon"><use href="#i-check"/></svg>' + esc(x.msg || 'Hecho') + '</div>'
+        : st === 'no' ? '<div class="ia-act-s">Descartada</div>'
+        : '<div class="ia-act-s err">' + esc(x.msg || 'No se pudo') + '</div><div class="ia-act-b"><button class="btn btn-sm" type="button" data-do="ok">Reintentar</button><button class="btn btn-sm" type="button" data-do="no">Descartar</button></div>') + '</div>';
+  }).join('');
+}
+var IA_SUG = ['¿Cómo vengo este mes contra la meta?', '¿Qué tengo que reponer ya?', '¿Qué clientes dejaron de comprar?', '¿Qué hay para arreglar en la planilla?', '¿Quién me debe plata?'];
+function iaDraw(scroll){
+  var box = $('ia-body'), h = '';
+  if (!IA.msgs.length){
+    h = '<div class="ia-hello"><span class="ia-orb big"></span><h3>¿Qué necesitás?</h3><p>Preguntame por ventas, stock, clientes o consignaciones, o pedime que anote algo. Todo lo que cambie la planilla te lo muestro antes para que lo confirmes.</p>' +
+      '<small>Para responder, el panel le manda a Gemini (Google) un resumen de tus ventas, tu stock y los nombres de tus clientes. Los WhatsApp no se mandan.</small></div>';
+  } else {
+    h = IA.msgs.map(function(m, i){
+      if (m.rol === 'user') return '<div class="ia-m u"><div class="ia-b">' + esc(m.texto).replace(/\n/g, '<br>') + '</div></div>';
+      return '<div class="ia-m a' + (m.err ? ' err' : '') + '"><div class="ia-b">' + (m.html || iaFmt(m.texto) || '') + '</div>' + iaActHTML(m, i) + '</div>';
+    }).join('');
+  }
+  if (IA.busy) h += '<div class="ia-m a"><div class="ia-b ia-typing" aria-label="Pensando"><i></i><i></i><i></i></div></div>';
+  box.innerHTML = h;
+  $('ia-sug').innerHTML = IA.msgs.length || IA.busy ? '' : IA_SUG.map(function(s){ return '<button type="button" class="cc-opt">' + esc(s) + '</button>'; }).join('') + '<button type="button" class="cc-opt" data-fill="Anotá una venta: ">Anotá una venta…</button>';
+  $('ia-send').disabled = IA.busy;
+  if (scroll !== false) box.scrollTop = box.scrollHeight;
+}
+function iaSetupHTML(kind, msg){
+  if (kind === 'conn') return '<p><b>Primero conectá el panel con la planilla.</b> El asistente usa la misma conexión que las ventas.</p><p><a class="btn btn-sm btn-sell" href="#ajustes" data-close="1">Ir a Ajustes → Conexión</a></p>';
+  if (kind === 'ver') return '<p><b>Falta actualizar el script a la versión 6</b> para usar el asistente. En <a class="link" href="#ajustes" data-close="1">Ajustes → Conexión</a>:</p>' + FIX_VERSION +
+    '<p><small>Al implementar, Google te va a pedir un permiso nuevo ("conectarse a un servicio externo"): es para que el script pueda hablar con Gemini. Aceptalo.</small></p>';
+  return '<p><b>' + esc(msg || 'Falta la clave de Gemini.') + '</b></p><ol class="fix"><li>Entrá a <a class="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> con tu cuenta de Google y tocá <b>Create API key</b>.</li><li>Copiala y pegala acá. Queda guardada en tu script, no en el panel.</li></ol>' +
+    '<div class="ia-key"><input class="in" type="password" placeholder="Clave de Gemini" autocomplete="off" spellcheck="false" data-key><button class="btn btn-sell" type="button" data-savekey>Guardar</button></div>';
+}
+function iaSend(txt){
+  txt = String(txt || '').trim();
+  if (!txt || IA.busy) return;
+  IA.msgs.push({ rol:'user', texto:txt }); IA.last = txt;
+  if (!admOk()){ IA.msgs.push({ rol:'ia', err:true, html:iaSetupHTML('conn') }); iaDraw(); return; }
+  IA.busy = true; iaDraw();
+  if (CSG.rows === null && !CSG.loading) csgLoad();
+  api('ia', { sistema:iaSistema(), mensajes:iaHist() }).then(function(r){
+    var o = iaParse(r.respuesta);
+    IA.msgs.push({ rol:'ia', texto:o.texto || (o.acciones.length ? 'Te lo dejo listo para confirmar.' : 'No tengo una respuesta para eso.'), acciones:o.acciones.map(function(a){ return { a:a, st:'pend' }; }) });
+    if (r.modelo) $('ia-sub').textContent = 'Gemini · ' + r.modelo;
+  }).catch(function(e){
+    var m = String(e && e.message || e), d = e && e.data || {};
+    IA.msgs.push({ rol:'ia', err:true, html:e && e.setup ? iaSetupHTML('conn') : /desconocida/i.test(m) ? iaSetupHTML('ver') : (d.sinClave || d.claveMala) ? iaSetupHTML('key', m) : '<p><b>No pude responder.</b> ' + esc(m) + '</p>' });
+  }).then(function(){ IA.busy = false; iaStore(); iaDraw(); });
+}
+function iaOpen(){
+  IA.open = true;
+  $('ia').classList.add('open'); $('ia').setAttribute('aria-hidden', 'false'); $('ia-fab').classList.add('hide');
+  document.documentElement.classList.add('ia-on');
+  if (CSG.rows === null && !CSG.loading) csgLoad();
+  iaDraw();
+  if (window.innerWidth > 920) setTimeout(function(){ $('ia-in').focus(); }, 60);
+}
+function iaClose(){
+  IA.open = false;
+  $('ia').classList.remove('open'); $('ia').setAttribute('aria-hidden', 'true'); $('ia-fab').classList.remove('hide');
+  document.documentElement.classList.remove('ia-on');
+}
+function iaGrow(){ var t = $('ia-in'); t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px'; }
+$('ia-fab').addEventListener('click', iaOpen);
+$('ia-x').addEventListener('click', iaClose);
+$('ia-clear').addEventListener('click', function(){ if (IA.busy) return; IA.msgs = []; iaStore(); iaDraw(); $('ia-in').focus(); });
+document.querySelectorAll('[data-act=ia]').forEach(function(el){ el.addEventListener('click', function(e){ e.preventDefault(); closeMenu(); iaOpen(); }); });
+$('ia-form').addEventListener('submit', function(e){ e.preventDefault(); var t = $('ia-in'), v = t.value; t.value = ''; iaGrow(); iaSend(v); });
+$('ia-in').addEventListener('input', iaGrow);
+$('ia-in').addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); $('ia-form').requestSubmit ? $('ia-form').requestSubmit() : $('ia-send').click(); } });
+$('ia-sug').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  var f = b.getAttribute('data-fill');
+  if (f){ $('ia-in').value = f; $('ia-in').focus(); return; }
+  iaSend(b.textContent);
+});
+$('ia-body').addEventListener('click', function(e){
+  var nav = e.target.closest('[data-nav]');
+  if (nav){ location.hash = '#' + nav.getAttribute('data-nav'); if (window.innerWidth <= 920) iaClose(); return; }
+  if (e.target.closest('[data-close]')){ iaClose(); return; }
+  var sk = e.target.closest('[data-savekey]');
+  if (sk){
+    var inp = sk.parentNode.querySelector('[data-key]'), k = inp.value.trim();
+    if (!k){ inp.focus(); return; }
+    sk.disabled = true; sk.innerHTML = '<span class="spin-i"></span>Probando…';
+    iaSaveKey(k).then(function(){
+      var q = IA.last; IA.msgs = IA.msgs.filter(function(m){ return !m.err; });
+      if (IA.msgs.length && IA.msgs[IA.msgs.length - 1].rol === 'user') IA.msgs.pop();
+      iaDraw(); if (q) iaSend(q);
+    }, function(er){ sk.disabled = false; sk.textContent = 'Guardar'; toast(String(er.message || er).slice(0, 140), { ms:6000 }); });
+    return;
+  }
+  var b = e.target.closest('[data-do]'); if (!b) return;
+  var card = b.closest('.ia-act'), m = IA.msgs[+card.getAttribute('data-m')], x = m && m.acciones[+card.getAttribute('data-a')];
+  if (!x || x.st === 'run' || x.st === 'ok') return;
+  if (b.getAttribute('data-do') === 'no'){ x.st = 'no'; iaStore(); iaDraw(false); return; }
+  var pl; try{ pl = iaPlan(x.a); }catch(er){ x.st = 'err'; x.msg = er.message; iaDraw(false); return; }
+  x.st = 'run'; iaDraw(false);
+  pl.run().then(function(msg){ x.st = 'ok'; x.msg = msg; }, function(er){
+    x.st = 'err'; x.msg = er && er.setup ? 'Primero conectá el panel en Ajustes → Conexión.' : /desconocida/i.test(er.message) ? 'Falta actualizar el script a la versión 6 (Ajustes → Conexión).' : er.message;
+  }).then(function(){ iaStore(); iaDraw(false); });
+});
+document.addEventListener('keydown', function(e){
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')){ e.preventDefault(); if (IA.open) iaClose(); else iaOpen(); return; }
+  if (e.key === 'Escape' && IA.open && !DR.kind) iaClose();
+});
+
+/* ---------- Ajustes → Asistente IA ---------- */
+var IAK = { st:null };
+function iaSaveKey(k){
+  return api('ia_clave', { gemini:k }).then(function(r){
+    IAK.st = { ia:!!r.ia, modelo:r.modelo || '' };
+    toast(r.ia ? (r.aviso ? 'Clave guardada. Ojo: ' + r.aviso : 'Clave guardada: el asistente ya responde') : 'Clave borrada', { ms:r.aviso ? 7000 : 2600 });
+    vIA(); return r;
+  });
+}
+function vIA(){
+  var pill = $('ia-pill'), out = $('ia-out');
+  if (!admOk()){ pill.className = 'pill p-low'; pill.textContent = 'Sin conectar'; out.textContent = 'Primero conectá el panel con la planilla, acá arriba.'; return; }
+  if (IAK.st === null){
+    IAK.st = false; pill.className = 'pill p-gray'; pill.textContent = 'Revisando…';
+    api('ia_estado').then(function(r){ IAK.st = { ia:!!r.ia, modelo:r.modelo || '' }; }, function(e){ IAK.st = { err:/desconocida/i.test(e.message) ? 'ver' : e.message }; }).then(vIA);
+    return;
+  }
+  if (IAK.st === false) return;
+  if (IAK.st.err){
+    pill.className = 'pill p-low'; pill.textContent = IAK.st.err === 'ver' ? 'Falta actualizar el script' : 'Sin respuesta';
+    out.innerHTML = IAK.st.err === 'ver' ? '<b>El script todavía no tiene el asistente.</b> Actualizalo a la versión 6:' + FIX_VERSION + '<small>Al implementar, Google pide un permiso nuevo para conectarse a un servicio externo (Gemini). Aceptalo.</small>' : esc(IAK.st.err);
+    return;
+  }
+  pill.className = 'pill ' + (IAK.st.ia ? 'p-ok' : 'p-low');
+  pill.innerHTML = IAK.st.ia ? '<svg class="icon"><use href="#i-check"/></svg>Activo' : 'Falta la clave';
+  out.innerHTML = IAK.st.ia ? 'El asistente está activo' + (IAK.st.modelo ? ' con <b>' + esc(IAK.st.modelo) + '</b>' : '') + '. Abrilo con el botón azul de abajo a la derecha o con Ctrl + K.'
+    : 'Sacá la clave en <a class="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> (Create API key), pegala y tocá Guardar. Queda en tu script de Google, no en este navegador.';
+  $('ia-key-off').hidden = !IAK.st.ia;
+}
+$('ia-key-save').addEventListener('click', function(){
+  var k = $('ia-key-in').value.trim(), b = this;
+  if (!k){ $('ia-key-in').focus(); return; }
+  b.disabled = true;
+  iaSaveKey(k).then(function(){ $('ia-key-in').value = ''; }, function(e){ if (e.setup) needSetup(); else { IAK.st = /desconocida/i.test(e.message) ? { err:'ver' } : IAK.st; vIA(); toast(String(e.message).slice(0, 140), { ms:6000 }); } }).then(function(){ b.disabled = false; });
+});
+$('ia-key-off').addEventListener('click', function(){
+  if (!window.confirm('¿Quitar la clave de Gemini? El asistente deja de responder hasta que cargues otra.')) return;
+  iaSaveKey('').catch(function(e){ toast(String(e.message).slice(0, 140), { ms:6000 }); });
+});
+
+/* =============================================================
+   MOVIMIENTO · indicador del menú, brillo que sigue al cursor
+   y festejo cuando se cruza un tramo de la meta del mes
+   ============================================================= */
+(function(){
+  var nav = $('nav'), ind = document.createElement('span');
+  ind.className = 'nav-ind'; nav.insertBefore(ind, nav.firstChild); nav.classList.add('has-ind');
+  var first = true;
+  window.navInd = function(){
+    var a = nav.querySelector('a.on');
+    if (!a){ ind.classList.remove('show'); return; }
+    ind.style.height = a.offsetHeight + 'px';
+    ind.style.transform = 'translateY(' + a.offsetTop + 'px)';
+    ind.classList.add('show');
+    if (first){ first = false; nf(function(){ ind.classList.add('move'); }); }
+  };
+  window.addEventListener('hashchange', function(){ setTimeout(navInd, 0); });
+  window.addEventListener('resize', navInd);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(navInd);
+
+  if (!REDUCED && window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches){
+    var lit = null, raf = 0, ev = null;
+    $('content').addEventListener('pointermove', function(e){
+      ev = e; if (raf) return;
+      raf = requestAnimationFrame(function(){
+        raf = 0;
+        var c = ev.target.closest ? ev.target.closest('.card') : null;
+        if (lit && lit !== c) lit.classList.remove('lit');
+        lit = c; if (!c) return;
+        var r = c.getBoundingClientRect();
+        c.style.setProperty('--mx', (ev.clientX - r.left) + 'px'); c.style.setProperty('--my', (ev.clientY - r.top) + 'px');
+        c.classList.add('lit');
+      });
+    }, { passive:true });
+    $('content').addEventListener('pointerleave', function(){ if (lit){ lit.classList.remove('lit'); lit = null; } });
+  }
+})();
+function confetti(n){
+  if (REDUCED) return;
+  var cv = document.createElement('canvas'); cv.className = 'fx-canvas';
+  var dpr = Math.min(2, window.devicePixelRatio || 1), W = window.innerWidth, H = window.innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; document.body.appendChild(cv);
+  var x = cv.getContext('2d'); x.scale(dpr, dpr);
+  var cols = ['#040BE7', '#3A40EE', '#8A8EF5', '#0A0A0C', '#D9D9D9'], P = [];
+  for (var i = 0; i < n; i++){
+    var side = i % 2 ? 1 : -1, a = (-Math.PI / 2) + side * (Math.PI / 7 + Math.random() * Math.PI / 5), v = 11 + Math.random() * 11;
+    P.push({ x:W / 2 - side * Math.min(W * .42, 420), y:H + 10, vx:Math.cos(a) * v * (side > 0 ? 1 : 1), vy:Math.sin(a) * v * 1.25, w:6 + Math.random() * 6, h:3 + Math.random() * 5,
+      r:Math.random() * 6.28, vr:(Math.random() - .5) * .4, c:cols[i % cols.length], l:1 });
+    P[i].vx = side * Math.abs(P[i].vx) * (.4 + Math.random() * .9);
+  }
+  var t0 = performance.now();
+  (function f(t){
+    var k = (t - t0) / 2400;
+    x.clearRect(0, 0, W, H);
+    P.forEach(function(p){
+      p.vy += .32; p.vx *= .992; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      x.save(); x.globalAlpha = Math.max(0, 1 - Math.pow(k, 3)); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); x.restore();
+    });
+    if (k < 1) requestAnimationFrame(f); else cv.remove();
+  })(t0);
+}
+/* tramos de la meta del mes: 25, 50, 75 y 100%. Festeja una sola vez cada uno */
+function fxGoal(){
+  if (!DATA || !(CFG.meta > 0)) return;
+  var now = new Date(), m0 = new Date(now.getFullYear(), now.getMonth(), 1), mk = now.getFullYear() + '-' + (now.getMonth() + 1);
+  var rev = DATA.ventas.reduce(function(s, v){ return v.d >= m0 ? s + v.total : s; }, 0);
+  var pc = rev / CFG.meta * 100, ms = pc >= 100 ? 100 : pc >= 75 ? 75 : pc >= 50 ? 50 : pc >= 25 ? 25 : 0, st = null;
+  try{ st = JSON.parse(localStorage.getItem('vc_goal_ms') || 'null'); }catch(e){}
+  var save = function(){ try{ localStorage.setItem('vc_goal_ms', JSON.stringify({ k:mk, m:ms, meta:CFG.meta })); }catch(e){} };
+  if (!st || st.k !== mk || st.meta !== CFG.meta){ save(); return; }   // primera vez del mes (o cambió la meta): solo anoto dónde estoy
+  if (ms > st.m){
+    save();
+    confetti(ms === 100 ? 160 : 70);
+    toast(ms === 100 ? 'Meta del mes cumplida: ' + money(rev) : 'Pasaste el ' + ms + '% de la meta del mes', { ms:5000 });
+  } else if (ms < st.m) save();
+}
 
 fromCache(); go(); load(); schedule();
 </script>
