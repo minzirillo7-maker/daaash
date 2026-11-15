@@ -1660,11 +1660,33 @@ function consigOut(o) {
   return { id: o['ID'], revendedor: o['REVENDEDOR'], lugar: o['LUGAR'], estado: o['ESTADO'], detalle: o['DETALLE'], unidades: o['UNIDADES'], vendidas: o['VENDIDAS'],
     devueltas: o['DEVUELTAS'], enMano: o['EN_MANO'], vendido: o['VENDIDO'], cobrado: o['COBRADO'], saldo: o['SALDO'], notas: o['NOTAS'], pagos: o['PAGOS'], items: JSON.parse(o['ITEMS']) };
 }
+/* La columna TIPO de MOVIMIENTOS puede tener una lista fija (VENTA, INGRESO). Le suma CONSIGNACION y DEVOLUCION para que la planilla las acepte */
+let TIPOS_OK = false;
+function consigTipos(M) {
+  if (TIPOS_OK) return;
+  TIPOS_OK = true;
+  try {
+    const c = M.col('TIPO');
+    if (c < 0) return;
+    const sh = M.sh, n = Math.max(1, sh.getMaxRows() - 1), rango = sh.getRange(2, c + 1, n, 1);
+    const regla = sh.getRange(2, c + 1).getDataValidation();
+    if (!regla) return;
+    let vals = [];
+    try { vals = regla.getCriteriaValues()[0] || []; } catch (e) { vals = []; }
+    if (regla.getCriteriaType() !== SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST || !Array.isArray(vals)) { rango.setDataValidation(null); return; }
+    const faltan = ['CONSIGNACION', 'DEVOLUCION'].filter(function (x) { return vals.indexOf(x) < 0; });
+    if (!faltan.length) return;
+    rango.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(vals.concat(faltan), true).setAllowInvalid(true).build());
+  } catch (e) {
+    try { M.sh.getRange(2, M.col('TIPO') + 1, Math.max(1, M.sh.getMaxRows() - 1), 1).setDataValidation(null); } catch (e2) {}
+  }
+}
 /* Mueve unidades entre STOCK y la calle, y lo anota en MOVIMIENTOS. delta > 0 = sale de stock */
 function consigMover(P, M, p, delta, fecha, rev, id, movs, tocados) {
   if (!delta) return;
   const tipo = delta > 0 ? 'CONSIGNACION' : 'DEVOLUCION', n = Math.abs(delta);
   const nota = (delta > 0 ? 'Entregado en consignación' : 'Vuelve de consignación') + ' · ' + id;
+  consigTipos(M);
   const fila = agregar(M, { 'FECHA': fecha, 'TIPO': tipo, 'ID PRODUCTO': p.id, 'PRODUCTO': p.producto, 'SABOR': p.sabor, 'CANTIDAD': n, 'CLIENTE': rev, 'NOTAS': nota });
   ponerStock(P, p, Math.max(0, (isFinite(p.stock) ? p.stock : 0) - delta));
   movs.push(movOut(fila, fecha, tipo, p, n, '', '', rev, nota));
