@@ -1827,7 +1827,9 @@ function iaResponder(b) {
   const pref = props.getProperty('GEMINI_MODELO');
   const lista = (pref ? [pref] : []).concat(IA_MODELOS.filter(function (m) { return m !== pref; }));
   let ultimo = '';
+  const t0 = Date.now();
   for (let i = 0; i < lista.length; i++) {
+    if (i > 0 && Date.now() - t0 > 90000) break;
     const m = lista[i];
     let code = 0, txt = '';
     try {
@@ -3284,13 +3286,14 @@ function uid(){
   return Array.prototype.map.call(a, function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
 }
 function api(accion, datos, op){
+  var TMO = accion === 'ia' ? 150000 : 60000;
   if (!admOk()){ var e0 = new Error('Primero conectá el panel con la planilla (Ajustes → Conexión).'); e0.setup = true; return Promise.reject(e0); }
   var body = JSON.stringify(Object.assign({ accion:accion, clave:ADM.clave, op:op || uid() }, datos || {}));
   var ctl = window.AbortController ? new AbortController() : null;
-  var t = setTimeout(function(){ if (ctl) ctl.abort(); }, 60000);
+  var t = setTimeout(function(){ if (ctl) ctl.abort(); }, TMO);
   return fetch(ADM.url, { method:'POST', body:body, signal: ctl ? ctl.signal : undefined })
     .then(function(r){ return r.text(); }, function(e){
-      throw new Error(e && e.name === 'AbortError' ? 'La planilla tardó demasiado. Fijate en Movimientos si se guardó antes de reintentar.' : 'No hay conexión con el script. Revisá internet o la URL en Ajustes → Conexión.');
+      throw new Error(e && e.name === 'AbortError' ? (accion === 'ia' ? 'Gemini tardó demasiado en contestar. Probá de nuevo con una pregunta más corta.' : 'La planilla tardó demasiado. Fijate en Movimientos si se guardó antes de reintentar.') : 'No hay conexión con el script. Revisá internet o la URL en Ajustes → Conexión.');
     })
     .then(function(txt){
       clearTimeout(t);
