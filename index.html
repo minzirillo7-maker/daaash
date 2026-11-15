@@ -1795,6 +1795,18 @@ ACCIONES.consig_eliminar = function (b, ss) {
 /* ASISTENTE IA (Gemini). La clave de Gemini queda guardada en las propiedades de este script,
    nunca en el panel ni en la planilla. El panel manda la conversación y un resumen de los datos;
    el script solo se lo pasa a Gemini y devuelve la respuesta. No escribe nada en la planilla. v6 */
+/* Prueba de Gemini: elegí esta función, tocá Ejecutar y mirá el Registro de ejecución */
+function probarIA() {
+  const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
+  if (!key) { Logger.log('NO HAY CLAVE GUARDADA'); return; }
+  ['gemini-flash-latest', 'gemini-2.5-flash'].forEach(function (m) {
+    const t = Date.now();
+    try {
+      const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent', { method: 'post', contentType: 'application/json', headers: { 'x-goog-api-key': key }, payload: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Decime hola' }] }] }), muteHttpExceptions: true });
+      Logger.log(m + ' → ' + r.getResponseCode() + ' en ' + (Date.now() - t) + 'ms → ' + r.getContentText().slice(0, 200));
+    } catch (e) { Logger.log(m + ' → ERROR en ' + (Date.now() - t) + 'ms → ' + e); }
+  });
+}
 /* Para dar el permiso de Gemini: elegí esta función en el editor y tocá Ejecutar (una sola vez) */
 function autorizarIA() { UrlFetchApp.fetch('https://www.google.com/generate_204', { muteHttpExceptions: true }); return 'Listo: el script ya puede hablar con Gemini'; }
 const IA_MODELOS = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
