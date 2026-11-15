@@ -1799,7 +1799,7 @@ ACCIONES.consig_eliminar = function (b, ss) {
 function probarIA() {
   const key = PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
   if (!key) { Logger.log('NO HAY CLAVE GUARDADA'); return; }
-  ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite'].forEach(function (m) {
+  ['gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'].forEach(function (m) {
     const t = Date.now();
     try {
       const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent', { method: 'post', contentType: 'application/json', headers: { 'x-goog-api-key': key }, payload: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Decime hola' }] }] }), muteHttpExceptions: true });
@@ -1809,7 +1809,7 @@ function probarIA() {
 }
 /* Para dar el permiso de Gemini: elegí esta función en el editor y tocá Ejecutar (una sola vez) */
 function autorizarIA() { UrlFetchApp.fetch('https://www.google.com/generate_204', { muteHttpExceptions: true }); return 'Listo: el script ya puede hablar con Gemini'; }
-const IA_MODELOS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite'];
+const IA_MODELOS = ['gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'];
 ACCIONES.ia = function () { return {}; };   // se atiende antes, en doPost (sin trabar la planilla)
 ACCIONES.ia_clave = function (b) {
   const props = PropertiesService.getScriptProperties(), k = limpio(b.gemini);
