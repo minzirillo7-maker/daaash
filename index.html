@@ -1094,18 +1094,39 @@ html.booting,html.booting body{overflow:hidden}
 
       <!-- ================= WEB ================= -->
       <section class="view" data-view="web">
+        <!-- BLOQUE A: Resumen ejecutivo -->
         <div class="grid" id="w-kpis"></div>
         <div class="grid">
-          <div class="card s6 anim"><div class="card-h"><div><h2>Embudo</h2><p>Sesiones únicas en cada paso</p></div></div><div class="funnel" id="w-funnel"></div><div class="note" id="w-funnel-n"></div></div>
-          <div class="card s6 anim"><div class="card-h"><div><h2>Visitas por día</h2><p>Sesiones registradas</p></div></div><div class="chart" id="w-chart"></div></div>
-        </div>
-        <div class="grid">
-          <div class="card s12 anim"><div class="card-h"><div><h2>Interés contra ventas</h2><p>Qué miran en la web y qué terminan comprando</p></div></div><div id="t-web"></div></div>
-        </div>
-        <div class="grid">
+          <div class="card s8 anim"><div class="card-h"><div><h2>Sesiones y conversiones</h2><p>Sesiones diarias vs. pedidos armados</p></div></div><div class="chart" id="w-chart"></div></div>
           <div class="card s4 anim"><div class="card-h"><div><h2>Origen de las visitas</h2><p>Sesiones por canal</p></div></div><ol class="hbars" id="w-src"></ol></div>
+        </div>
+
+        <!-- BLOQUE D: Embudo de conversión (7 pasos) -->
+        <div class="grid">
+          <div class="card s7 anim"><div class="card-h"><div><h2>Embudo de conversión</h2><p>Dónde se pierden los clientes</p></div></div><div class="funnel" id="w-funnel"></div><div class="note" id="w-funnel-n"></div></div>
+          <div class="card s5 anim"><div class="card-h"><div><h2>Drop-off por paso</h2><p>% que se pierde en cada etapa</p></div></div><ol class="hbars" id="w-dropoff"></ol></div>
+        </div>
+
+        <!-- BLOQUE B: Productos -->
+        <div class="grid">
+          <div class="card s12 anim"><div class="card-h"><div><h2>Rendimiento de productos</h2><p>Vistas, carrito, ventas y conversión de cada producto</p></div></div><div id="t-web"></div></div>
+        </div>
+        <div class="grid">
+          <div class="card s6 anim"><div class="card-h"><div><h2>Top 10 — más vistos</h2><p>Productos con más vistas en la web</p></div></div><ol class="hbars" id="w-top-views"></ol></div>
+          <div class="card s6 anim"><div class="card-h"><div><h2>Top 10 — más al carrito</h2><p>Productos que más agregan al carrito</p></div></div><ol class="hbars" id="w-top-cart"></ol></div>
+        </div>
+
+        <!-- BLOQUE C: Navegación y búsquedas -->
+        <div class="grid">
           <div class="card s4 anim"><div class="card-h"><div><h2>Dispositivo</h2><p>Desde dónde entran</p></div></div><ol class="hbars" id="w-dev"></ol></div>
           <div class="card s4 anim"><div class="card-h"><div><h2>Búsquedas sin resultado</h2><p>Lo que buscan y no tenés</p></div></div><ul class="list" id="w-search"></ul></div>
+          <div class="card s4 anim"><div class="card-h"><div><h2>Búsquedas populares</h2><p>Lo más buscado en la web</p></div></div><ul class="list" id="w-search-pop"></ul></div>
+        </div>
+
+        <!-- Pop-up y fidelidad -->
+        <div class="grid">
+          <div class="card s6 anim"><div class="card-h"><div><h2>Pop-up y CREW CARD</h2><p>Rendimiento de los pop-ups y la tarjeta de fidelidad</p></div></div><ol class="hbars" id="w-popup"></ol></div>
+          <div class="card s6 anim"><div class="card-h"><div><h2>Favoritos</h2><p>Productos que más agregan a favoritos</p></div></div><ol class="hbars" id="w-favs"></ol></div>
         </div>
       </section>
 
@@ -3014,74 +3035,160 @@ $('cc-reload').addEventListener('click', function(){ CC.lista = null; CC.err = n
 function vWeb(R){
   var E = DATA.events.filter(function(e){ return inR(e.d, R.from, R.to); });
   var EP = DATA.events.filter(function(e){ return inR(e.d, R.pf, R.pt); });
+
+  /* helpers de sesiones únicas */
   function uniq(list, evs){ var s = {}; list.forEach(function(e, i){ if (!evs || evs.indexOf(e.ev) !== -1) s[e.sesion || e.visitante || ('x' + i)] = 1; }); return Object.keys(s).length; }
   function vis(list){ var s = {}; list.forEach(function(e){ if (e.visitante) s[e.visitante] = 1; }); return Object.keys(s).length; }
+
+  /* ===== BLOQUE A — KPIs ejecutivos ===== */
   var ses = uniq(E, ['sesion']), sesP = uniq(EP, ['sesion']);
   var dm = uniq(E, ['click_dm','abrio_pago']), dmP = uniq(EP, ['click_dm','abrio_pago']);
   var views = E.filter(function(e){ return e.ev === 'vista_producto'; }).length, viewsP = EP.filter(function(e){ return e.ev === 'vista_producto'; }).length;
+  var cartSes = uniq(E, ['agrego_carrito','combo_armado']), cartSesP = uniq(EP, ['agrego_carrito','combo_armado']);
+  var convRate = ses ? dm / ses : 0, convRateP = sesP ? dmP / sesP : 0;
+  var bounce = 0; (function(){
+    var sesMap = {}; E.forEach(function(e){ var id = e.sesion || e.visitante; if (!id) return; if (!sesMap[id]) sesMap[id] = { evs:0 }; sesMap[id].evs++; if (e.ev === 'sesion') sesMap[id].isSes = true; });
+    var totalSes = 0, bounceSes = 0;
+    Object.keys(sesMap).forEach(function(k){ if (sesMap[k].isSes){ totalSes++; if (sesMap[k].evs <= 1) bounceSes++; } });
+    bounce = totalSes ? bounceSes / totalSes : 0;
+  })();
   kpiRow($('w-kpis'), [
-    { id:'w1', label:'Sesiones', icon:'globe', val:ses, fmt:intf, delta:R.cmp ? deltaH(ses, sesP) : '', note:'todo el historial' },
-    { id:'w2', label:'Visitantes únicos', icon:'users', val:vis(E), fmt:intf, delta:R.cmp ? deltaH(vis(E), vis(EP)) : '', note:'todo el historial' },
+    { id:'w1', label:'Sesiones', icon:'globe', val:ses, fmt:intf, delta:R.cmp ? deltaH(ses, sesP) : '', note:'visitas totales' },
+    { id:'w2', label:'Tasa de conversión', icon:'check', val:convRate, fmt:function(n){ return pct(n); }, delta:R.cmp ? deltaH(convRate * 100, convRateP * 100, true) : '', note:'sesiones → te escribieron' },
     { id:'w3', label:'Te escribieron', icon:'bag', val:dm, fmt:intf, delta:R.cmp ? deltaH(dm, dmP) : '', note:'sesiones con click a DM' },
-    { id:'w4', label:'Vistas de producto', icon:'tag', val:views, fmt:intf, delta:R.cmp ? deltaH(views, viewsP) : '', note:'todo el historial' }
+    { id:'w4', label:'Rebote', icon:'users', val:bounce, fmt:function(n){ return pct(n); }, delta:'', note:'entraron y se fueron' }
   ], 's3');
 
-  var steps = [
-    { l:'Entraron', ev:['sesion'], c:'var(--blue)' }, { l:'Pasaron +18', ev:['paso_edad'], c:'var(--blue)' },
-    { l:'Vieron producto', ev:['vista_producto'], c:'var(--blue-2)' }, { l:'Al carrito', ev:['agrego_carrito','combo_armado'], c:'var(--blue-3)' },
-    { l:'Te escribieron', ev:['click_dm','abrio_pago'], c:'var(--ink)' }
-  ];
-  steps.forEach(function(s){ s.n = uniq(E, s.ev); });
-  var top = steps[0].n || Math.max.apply(null, steps.map(function(s){ return s.n; }));
-  if (!E.length){ $('w-funnel').innerHTML = '<div class="empty">Sin visitas registradas en este período.</div>'; $('w-funnel-n').innerHTML = 'Los datos salen de la pestaña EVENTOS, que llena la web sola.'; }
-  else {
-    $('w-funnel').innerHTML = steps.map(function(s, i){
-      var conv = i ? (steps[i-1].n ? s.n / steps[i-1].n : 0) : 1;
-      return '<div class="f-row"><div class="f-l">' + s.l + '</div><div class="f-t"><div class="f-f" data-w="' + (top ? Math.min(100, Math.max(s.n ? 9 : 0, s.n / top * 100)) : 0) + '" style="background:' + s.c + (s.n ? ';min-width:44px' : '') + '">' + intf(s.n) + '</div></div><div class="f-p">' + (i ? pct(conv) : '100%') + '<small>' + (i ? 'del anterior' : 'base') + '</small></div></div>';
-    }).join('');
-    nf(function(){ document.querySelectorAll('#w-funnel .f-f').forEach(function(f, i){ f.style.transitionDelay = (REDUCED ? 0 : i * 110) + 'ms'; f.style.width = f.getAttribute('data-w') + '%'; }); });
-    var t = 'De cada 100 que entran, <b>' + (steps[0].n ? Math.round(steps[4].n / steps[0].n * 100) : 0) + '</b> te escriben.';
-    if (steps[0].n && steps[1].n / steps[0].n < .75) t += ' El <b>' + pct(1 - steps[1].n / steps[0].n) + '</b> se va en el control de edad.';
-    if (steps[2].n && steps[3].n / steps[2].n < .2) t += ' Pocos agregan al carrito después de ver un producto.';
-    $('w-funnel-n').innerHTML = t;
-  }
+  /* Gráfico de sesiones + conversiones por día */
   var gran = R.days > 120 ? 'w' : 'd';
   var sesEv = E.filter(function(e){ return e.ev === 'sesion'; }).map(function(e){ return { d:e.d, total:1, cant:1, profit:0 }; });
   var wb = buckets(sesEv, R.from, R.to, gran, 'units'); wb.forEach(function(b){ b.extra = 'sesiones'; });
   barChart($('w-chart'), wb, { fmt:intf, axisFmt:intf, h:220 });
 
-  var map = {};
-  E.forEach(function(e){
-    if (e.ev !== 'vista_producto' && e.ev !== 'agrego_carrito') return;
-    var k = norm(fixModel(e.producto) + '|' + e.sabor); var x = map[k] = map[k] || { modelo:fixModel(e.producto), sabor:e.sabor, views:0, cart:0, sold:0 };
-    if (e.ev === 'vista_producto') x.views++; else x.cart++;
-  });
-  DATA.ventas.forEach(function(v){ if (!inR(v.d, R.from, R.to)) return; if (map[v.key]) map[v.key].sold += v.cant; });
-  var sk = {}; DATA.stock.forEach(function(p){ sk[p.key] = p; });
-  var rows = Object.keys(map).map(function(k){ var x = map[k], p = sk[k]; x.img = p && p.img; x.stock = p ? p.stock : NaN; x.state = p ? p.state : 'gone'; x.conv = x.views ? x.sold / x.views : NaN; return x; });
-  table('t-web', [
-    prodCols(),
-    { k:'views', label:'Vistas', num:true, get:function(r){ return r.views; } },
-    { k:'cart', label:'Al carrito', num:true, get:function(r){ return r.cart; } },
-    { k:'sold', label:'Vendidos', num:true, get:function(r){ return r.sold; } },
-    { k:'conv', label:'Ventas por vista', num:true, get:function(r){ return r.conv; }, fmt:function(r){ return isFinite(r.conv) ? pct(r.conv) : '—'; }, csv:function(r){ return isFinite(r.conv) ? r.conv * 100 : ''; } },
-    { k:'stock', label:'Stock', num:true, get:function(r){ return r.stock; }, fmt:function(r){ return r.state === 'gone' ? '<span class="pill p-gray">—</span>' : stockPill(r); } }
-  ], rows, { sort:'views', dir:'desc', search:'Buscar sabor', file:'web-interes', page:12, empty:'Sin vistas de producto en este período.' });
-
+  /* Origen de visitas */
   function share(field, el){
     var c = {}, s = {};
     E.forEach(function(e, i){ if (e.ev !== 'sesion') return; var id = e.sesion || ('x' + i); if (s[id]) return; s[id] = 1; var k = e[field] || 'sin dato'; c[k] = (c[k]||0) + 1; });
     var tot = Object.keys(c).reduce(function(a,k){ return a + c[k]; }, 0);
-    hbars(el, Object.keys(c).map(function(k){ return { name:tc(k), val:c[k] }; }).sort(function(a,b){ return b.val - a.val; }).slice(0, 5), function(i){ return intf(i.val); }, function(i){ return tot ? pct(i.val / tot) : ''; });
+    hbars(el, Object.keys(c).map(function(k){ return { name:tc(k), val:c[k] }; }).sort(function(a,b){ return b.val - a.val; }).slice(0, 6), function(i){ return intf(i.val); }, function(i){ return tot ? pct(i.val / tot) : ''; });
   }
-  share('origen', $('w-src')); share('disp', $('w-dev'));
+  share('origen', $('w-src'));
 
+  /* ===== BLOQUE D — Embudo de 7 pasos ===== */
+  var steps = [
+    { l:'Entraron', ev:['sesion'], c:'var(--blue)' },
+    { l:'Pasaron +18', ev:['paso_edad'], c:'var(--blue)' },
+    { l:'Vieron producto', ev:['vista_producto'], c:'var(--blue-2)' },
+    { l:'Favorito / interés', ev:['favorito_agregado','busqueda'], c:'var(--blue-2)' },
+    { l:'Al carrito', ev:['agrego_carrito','combo_armado'], c:'var(--blue-3)' },
+    { l:'Abrieron pago', ev:['abrio_pago'], c:'var(--blue-3)' },
+    { l:'Te escribieron', ev:['click_dm'], c:'var(--ink)' }
+  ];
+  steps.forEach(function(s){ s.n = uniq(E, s.ev); });
+  var funnelTop = steps[0].n || Math.max.apply(null, steps.map(function(s){ return s.n; }));
+  if (!E.length){
+    $('w-funnel').innerHTML = '<div class="empty">Sin visitas registradas en este período.</div>';
+    $('w-funnel-n').innerHTML = 'Los datos salen de la pestaña EVENTOS, que llena la web sola.';
+    $('w-dropoff').innerHTML = '<li class="empty" style="display:block">Sin datos.</li>';
+  } else {
+    $('w-funnel').innerHTML = steps.map(function(s, i){
+      var conv = i ? (steps[i-1].n ? s.n / steps[i-1].n : 0) : 1;
+      return '<div class="f-row"><div class="f-l">' + s.l + '</div><div class="f-t"><div class="f-f" data-w="' + (funnelTop ? Math.min(100, Math.max(s.n ? 9 : 0, s.n / funnelTop * 100)) : 0) + '" style="background:' + s.c + (s.n ? ';min-width:44px' : '') + '">' + intf(s.n) + '</div></div><div class="f-p">' + (i ? pct(conv) : '100%') + '<small>' + (i ? 'del anterior' : 'base') + '</small></div></div>';
+    }).join('');
+    nf(function(){ document.querySelectorAll('#w-funnel .f-f').forEach(function(f, i){ f.style.transitionDelay = (REDUCED ? 0 : i * 80) + 'ms'; f.style.width = f.getAttribute('data-w') + '%'; }); });
+    /* Notas automáticas del embudo */
+    var totalConv = steps[0].n ? Math.round(steps[6].n / steps[0].n * 100) : 0;
+    var t = 'De cada 100 que entran, <b>' + totalConv + '</b> te escriben.';
+    var worst = { drop:0, i:0 };
+    for (var fi = 1; fi < steps.length; fi++){
+      var d = steps[fi-1].n ? 1 - steps[fi].n / steps[fi-1].n : 0;
+      if (d > worst.drop){ worst.drop = d; worst.i = fi; }
+    }
+    if (worst.drop > 0.3) t += ' La mayor caída es en <b>"' + steps[worst.i].l + '"</b> (' + pct(worst.drop) + ' se pierde).';
+    if (steps[0].n && steps[1].n / steps[0].n < .75) t += ' El <b>' + pct(1 - steps[1].n / steps[0].n) + '</b> se va en el control de edad.';
+    if (steps[2].n && steps[4].n / steps[2].n < .15) t += ' Pocos agregan al carrito después de ver un producto.';
+    $('w-funnel-n').innerHTML = t;
+
+    /* Drop-off horizontal bars */
+    var dropItems = [];
+    for (var di = 1; di < steps.length; di++){
+      var dropPct = steps[di-1].n ? Math.round((1 - steps[di].n / steps[di-1].n) * 100) : 0;
+      dropItems.push({ name:steps[di-1].l + ' → ' + steps[di].l, val:dropPct, sub:'-' + intf(steps[di-1].n - steps[di].n) + ' sesiones' });
+    }
+    dropItems.sort(function(a,b){ return b.val - a.val; });
+    hbars($('w-dropoff'), dropItems, function(i){ return i.val + '%'; }, function(i){ return i.sub; });
+  }
+
+  /* ===== BLOQUE B — Productos ===== */
+  var map = {};
+  E.forEach(function(e){
+    if (e.ev !== 'vista_producto' && e.ev !== 'agrego_carrito' && e.ev !== 'favorito_agregado') return;
+    var k = norm(fixModel(e.producto) + '|' + e.sabor); var x = map[k] = map[k] || { modelo:fixModel(e.producto), sabor:e.sabor, views:0, cart:0, sold:0, favs:0 };
+    if (e.ev === 'vista_producto') x.views++;
+    else if (e.ev === 'agrego_carrito') x.cart++;
+    else if (e.ev === 'favorito_agregado') x.favs++;
+  });
+  DATA.allVentas.forEach(function(v){ if (!inR(v.d, R.from, R.to)) return; if (map[v.key]) map[v.key].sold += v.cant; });
+  var sk = {}; DATA.all.forEach(function(p){ sk[p.key] = p; });
+  var rows = Object.keys(map).map(function(k){ var x = map[k], p = sk[k]; x.img = p && p.img; x.stock = p ? p.stock : NaN; x.state = p ? p.state : 'gone'; x.conv = x.views ? x.sold / x.views : NaN; x.ctr = x.views ? x.cart / x.views : NaN; return x; });
+
+  table('t-web', [
+    prodCols(),
+    { k:'views', label:'Vistas', num:true, get:function(r){ return r.views; } },
+    { k:'cart', label:'Carrito', num:true, get:function(r){ return r.cart; } },
+    { k:'ctr', label:'CTR', num:true, get:function(r){ return r.ctr; }, fmt:function(r){ return isFinite(r.ctr) ? pct(r.ctr) : '—'; }, csv:function(r){ return isFinite(r.ctr) ? r.ctr * 100 : ''; } },
+    { k:'sold', label:'Vendidos', num:true, get:function(r){ return r.sold; } },
+    { k:'conv', label:'Conversión', num:true, get:function(r){ return r.conv; }, fmt:function(r){ return isFinite(r.conv) ? pct(r.conv) : '—'; }, csv:function(r){ return isFinite(r.conv) ? r.conv * 100 : ''; } },
+    { k:'stock', label:'Stock', num:true, get:function(r){ return r.stock; }, fmt:function(r){ return r.state === 'gone' ? '<span class="pill p-gray">—</span>' : stockPill(r); } }
+  ], rows, { sort:'views', dir:'desc', search:'Buscar sabor', file:'web-rendimiento', page:12, empty:'Sin vistas de producto en este período.' });
+
+  /* Top 10 más vistos y más al carrito */
+  var sortedViews = rows.slice().sort(function(a,b){ return b.views - a.views; }).slice(0, 10);
+  hbars($('w-top-views'), sortedViews.filter(function(r){ return r.views > 0; }).map(function(r){ return { name:(r.sabor || r.modelo), val:r.views, sub:tc(r.modelo) }; }), function(i){ return intf(i.val); }, function(i){ return i.sub; });
+
+  var sortedCart = rows.slice().sort(function(a,b){ return b.cart - a.cart; }).slice(0, 10);
+  hbars($('w-top-cart'), sortedCart.filter(function(r){ return r.cart > 0; }).map(function(r){ return { name:(r.sabor || r.modelo), val:r.cart, sub:tc(r.modelo) }; }), function(i){ return intf(i.val); }, function(i){ return i.sub; });
+
+  /* ===== BLOQUE C — Navegación ===== */
+  share('disp', $('w-dev'));
+
+  /* Búsquedas sin resultado */
   var q = {};
   E.forEach(function(e){ if (e.ev !== 'busqueda_sin_resultados') return; var t = (e.detalle || e.producto || e.sabor || '').trim().toLowerCase(); if (!t) return; q[t] = q[t] || { n:0, last:e.d }; q[t].n++; if (e.d > q[t].last) q[t].last = e.d; });
   var qs = Object.keys(q).sort(function(a,b){ return q[b].n - q[a].n; }).slice(0, 12);
   $('w-search').innerHTML = qs.length ? qs.map(function(t){
     return '<li><span class="li-ic gray"><svg class="icon"><use href="#i-search"/></svg></span><div class="li-m"><b>"' + esc(t) + '"</b><span>última vez ' + daysAgo(q[t].last) + '</span></div><div class="li-v">' + q[t].n + '<small>' + plural(q[t].n, 'vez', 'veces') + '</small></div></li>';
-  }).join('') : '<li class="empty" style="display:block">Nadie buscó algo que no tengas en este período.</li>';
+  }).join('') : '<li class="empty" style="display:block">Nadie buscó algo que no tengas.</li>';
+
+  /* Búsquedas populares (con y sin resultado) */
+  var qp = {};
+  E.forEach(function(e){ if (e.ev !== 'busqueda' && e.ev !== 'busqueda_sin_resultados') return; var t = (e.detalle || e.producto || e.sabor || '').trim().toLowerCase(); if (!t) return; qp[t] = qp[t] || { n:0, ok:0 }; qp[t].n++; if (e.ev === 'busqueda') qp[t].ok++; });
+  var qps = Object.keys(qp).sort(function(a,b){ return qp[b].n - qp[a].n; }).slice(0, 12);
+  $('w-search-pop').innerHTML = qps.length ? qps.map(function(t){
+    var hit = qp[t].ok ? '<span class="pill p-ok" style="font-size:.65rem">✓</span>' : '<span class="pill p-low" style="font-size:.65rem">✗</span>';
+    return '<li><span class="li-ic gray"><svg class="icon"><use href="#i-search"/></svg></span><div class="li-m"><b>"' + esc(t) + '"</b><span>' + hit + ' ' + intf(qp[t].ok) + '/' + intf(qp[t].n) + ' con resultado</span></div><div class="li-v">' + qp[t].n + '<small>' + plural(qp[t].n, 'vez', 'veces') + '</small></div></li>';
+  }).join('') : '<li class="empty" style="display:block">Sin búsquedas registradas.</li>';
+
+  /* Pop-up y CREW CARD stats */
+  var popEvents = ['popup_visto','popup_cerro','popup_click','popup_whatsapp','abrio_crew_card','consulto_crew_card'];
+  var popCounts = {};
+  popEvents.forEach(function(ev){ popCounts[ev] = E.filter(function(e){ return e.ev === ev; }).length; });
+  var popItems = [
+    { name:'Pop-up mostrado', val:popCounts['popup_visto'] || 0, sub:'veces que apareció' },
+    { name:'Pop-up → clic', val:popCounts['popup_click'] || 0, sub:popCounts['popup_visto'] ? pct(popCounts['popup_click'] / popCounts['popup_visto']) + ' conv.' : '' },
+    { name:'Pop-up → WhatsApp', val:popCounts['popup_whatsapp'] || 0, sub:'se registraron' },
+    { name:'Abrió CREW CARD', val:popCounts['abrio_crew_card'] || 0, sub:'vieron su tarjeta' },
+    { name:'Consultó CREW CARD', val:popCounts['consulto_crew_card'] || 0, sub:'desde la web' }
+  ].filter(function(i){ return i.val > 0; });
+  if (popItems.length) hbars($('w-popup'), popItems, function(i){ return intf(i.val); }, function(i){ return i.sub; });
+  else $('w-popup').innerHTML = '<li class="empty" style="display:block">Sin interacciones de pop-up / CREW CARD.</li>';
+
+  /* Favoritos */
+  var favMap = {};
+  E.forEach(function(e){ if (e.ev !== 'favorito_agregado') return; var k = (e.producto || '') + '|' + (e.sabor || ''); favMap[k] = favMap[k] || { name:e.sabor || e.producto || '?', sub:tc(e.producto), val:0 }; favMap[k].val++; });
+  var favItems = Object.keys(favMap).map(function(k){ return favMap[k]; }).sort(function(a,b){ return b.val - a.val; }).slice(0, 8);
+  if (favItems.length) hbars($('w-favs'), favItems, function(i){ return intf(i.val); }, function(i){ return i.sub; });
+  else $('w-favs').innerHTML = '<li class="empty" style="display:block">Sin favoritos registrados.</li>';
 }
 
 /* ---------- METAS SEMANALES (Fase 1) ---------- */
