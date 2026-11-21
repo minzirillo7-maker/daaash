@@ -960,6 +960,21 @@ html.booting,html.booting body{overflow:hidden}
           <div id="pst-warn"></div>
           <div id="t-pst"></div>
         </div></div>
+        <div class="grid">
+          <div class="card s5 anim">
+            <div class="card-h"><div><h2>Calculadora de perfumes</h2><p>Costo = USD × 1,13 × dólar + envío · el dólar, el envío y el margen quedan guardados</p></div></div>
+            <form class="form" onsubmit="return false" style="grid-template-columns:1fr 1fr">
+              <div class="field" style="grid-column:1/-1"><label for="pc-q">Buscar en el catálogo de Star Company <span style="font-weight:400;color:var(--muted)">(opcional)</span></label><input id="pc-q" list="dl-pc" placeholder="Ej: Khamrah, Yara, Sauvage" autocomplete="off"><datalist id="dl-pc"></datalist></div>
+              <div class="field"><label for="pc-usd">Precio en USD</label><input id="pc-usd" type="number" min="0" step="0.01" inputmode="decimal" placeholder="19,45"></div>
+              <div class="field"><label for="pc-m">Margen sobre costo (%)</label><input id="pc-m" type="number" min="0" max="300" step="1" inputmode="numeric"></div>
+              <div class="field"><label for="pc-d">Dólar ($)</label><input id="pc-d" type="number" min="0" step="1" inputmode="numeric"></div>
+              <div class="field"><label for="pc-f">Multiplicador</label><input id="pc-f" type="number" min="0" step="0.01" inputmode="decimal"></div>
+              <div class="field"><label for="pc-e">Envío por unidad ($)</label><input id="pc-e" type="number" min="0" step="100" inputmode="numeric"></div>
+              <div class="field"><label for="pc-r">Redondear a ($)</label><input id="pc-r" type="number" min="1" step="100" inputmode="numeric"></div>
+            </form>
+          </div>
+          <div class="card s7 anim"><div class="card-h"><div><h2>Costo y precio de venta</h2><p>El precio se redondea para arriba</p></div></div><div id="pc-out"></div></div>
+        </div>
         <div class="grid" id="prf-kpis"></div>
         <div class="grid"><div class="card s12 anim">
           <div class="card-h"><div><h2>Pedidos de perfumes</h2><p>Preventa y ventas · tocá un pedido para editarlo o cambiarle el estado</p></div>
@@ -4834,8 +4849,53 @@ function prfActive(p){ return p.estado !== 'ENTREGADO' && p.estado !== 'CANCELAD
    Son productos de STOCK con categoría "PERFUME …" y modelo "PERFUME <MARCA>".
    Ventas, ingresos y ajustes usan el mismo circuito que los vapes.
    ============================================================= */
-var PRF_DOLAR = 1685, PRF_FACTOR = 1.13, PRF_ENVIO = 2000;   // costo = USD × 1,13 × dólar + envío
-function prfCosto(usd){ return Math.round(usd * PRF_FACTOR * PRF_DOLAR + PRF_ENVIO); }
+/* fórmula de Lolo: costo = USD × 1,13 × dólar + envío · precio = costo × (1 + margen), redondeado para arriba.
+   Los valores se cambian en la Calculadora de perfumes y quedan guardados en este navegador. */
+var PRF_CFG = { dolar:1685, factor:1.13, envio:2000, margen:37, redondeo:500 };
+try{ Object.assign(PRF_CFG, JSON.parse(localStorage.getItem('vc_prf_calc') || '{}')); }catch(e){}
+function prfCosto(usd){ return Math.round(usd * PRF_CFG.factor * PRF_CFG.dolar + PRF_CFG.envio); }
+function prfVenta(costo, margen){ var r = PRF_CFG.redondeo > 0 ? PRF_CFG.redondeo : 500; return Math.ceil(costo * (1 + (margen == null ? PRF_CFG.margen : margen) / 100) / r) * r; }
+function pcCalc(){
+  var usd = parseFloat(String($('pc-usd').value).replace(',', '.'));
+  var get = function(id, def){ var v = parseFloat(String($(id).value).replace(',', '.')); return isFinite(v) && v >= 0 ? v : def; };
+  PRF_CFG.dolar = get('pc-d', 1685); PRF_CFG.factor = get('pc-f', 1.13); PRF_CFG.envio = get('pc-e', 2000);
+  PRF_CFG.margen = get('pc-m', 37); PRF_CFG.redondeo = get('pc-r', 500) || 500;
+  try{ localStorage.setItem('vc_prf_calc', JSON.stringify(PRF_CFG)); }catch(e){}
+  var out = $('pc-out');
+  if (!(usd > 0)){ out.innerHTML = '<div class="empty-mini">Poné el precio en USD (o buscá el perfume en el catálogo) y te calculo el costo y el precio de venta.</div>'; return; }
+  var base = usd * PRF_CFG.factor * PRF_CFG.dolar, costo = prfCosto(usd), venta = prfVenta(costo), gan = venta - costo;
+  out.innerHTML = '<div class="calc-out">' +
+    '<div class="calc-big"><span>Precio de venta sugerido</span><b>' + money(venta) + '</b><small>ganás ' + money(gan) + ' por unidad · margen ' + Math.round(gan / costo * 100) + '% sobre costo (' + pct(gan / venta) + ' sobre venta)</small></div>' +
+    '<div class="calc-row"><span>USD × ' + String(PRF_CFG.factor).replace('.', ',') + ' × $' + intf(PRF_CFG.dolar) + '</span><b>' + money(base) + '</b></div>' +
+    '<div class="calc-row"><span>+ Envío</span><b>' + money(PRF_CFG.envio) + '</b></div>' +
+    '<div class="calc-row"><span>Costo por unidad</span><b>' + money(costo) + '</b></div>' +
+    '<div class="calc-row"><span>+ ' + Math.round(PRF_CFG.margen) + '% de margen</span><b>' + money(costo * (1 + PRF_CFG.margen / 100)) + '</b></div>' +
+    '<div class="calc-row"><span>Redondeado a $' + intf(PRF_CFG.redondeo) + ' para arriba</span><b>' + money(venta) + '</b></div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn btn-sell" type="button" id="pc-new"><svg class="icon"><use href="#i-plus"/></svg>Crear perfume con este precio</button>' +
+    '<button class="btn" type="button" id="pc-copy"><svg class="icon"><use href="#i-copy"/></svg>Copiar</button></div></div>';
+  $('pc-new').addEventListener('click', function(){
+    var c = PC_SEL && prfById(PC_SEL), gen = c ? (/\bFEM\b/.test(c.sc || '') ? 'MUJER' : /\bUNI\b/.test(c.sc || '') ? 'UNISEX' : 'HOMBRE') : 'UNISEX';
+    openProduct(null, c ? { modelo:'PERFUME ' + norm(c.marca), sabor:c.nombre + ' ' + c.fmt, precio:venta, costo:costo, cat:'PERFUME ' + gen, img:PERF_IMG + c.id + '.jpg' }
+                        : { modelo:'PERFUME ', precio:venta, costo:costo, cat:'PERFUME UNISEX' });
+  });
+  $('pc-copy').addEventListener('click', function(){
+    var t = (PC_SEL && prfById(PC_SEL) ? prfName(prfById(PC_SEL)) + ' · ' : '') + 'USD ' + String(usd).replace('.', ',') + ' · costo ' + money(costo) + ' · venta ' + money(venta) + ' · ganás ' + money(gan);
+    if (navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast('Copiado'); }, function(){ toast(t); }); else toast(t);
+  });
+}
+var PC_SEL = null;
+(function(){
+  if (!$('pc-usd')) return;
+  $('pc-d').value = PRF_CFG.dolar; $('pc-f').value = PRF_CFG.factor; $('pc-e').value = PRF_CFG.envio; $('pc-m').value = PRF_CFG.margen; $('pc-r').value = PRF_CFG.redondeo;
+  $('dl-pc').innerHTML = PERF_CAT.map(function(c){ return '<option value="' + esc(prfName(c)) + '">'; }).join('');
+  $('pc-q').addEventListener('input', function(){
+    var v = norm(this.value), c = PERF_CAT.filter(function(x){ return norm(prfName(x)) === v; })[0];
+    PC_SEL = c ? c.id : null;
+    if (c){ $('pc-usd').value = c.usd; pcCalc(); }
+  });
+  ['pc-usd','pc-m','pc-d','pc-f','pc-e','pc-r'].forEach(function(id){ $(id).addEventListener('input', function(){ pcCalc(); }); });
+  pcCalc();
+})();
 var TIENDA_IMG = 'https://vapecrew.vercel.app/assets/perfumes/';
 /* los 12 de la sección Perfumes de la tienda (fotos y notas ya están en la web) */
 var TIENDA_PERF = [
