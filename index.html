@@ -516,6 +516,7 @@ details.conn-d summary{cursor:pointer;font-size:.8rem;font-weight:600;color:var(
 .grid.five{grid-template-columns:repeat(5,minmax(0,1fr))}
 .s1{grid-column:span 1}
 .calc-out{display:flex;flex-direction:column}
+.kpi-sub{font-size:.7rem;color:var(--muted);margin-top:6px;line-height:1.35}
 .calc-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:.82rem}
 .calc-row:last-child{border-bottom:none}
 .calc-row span:first-child{color:var(--muted)}
@@ -899,7 +900,7 @@ html.booting,html.booting body{overflow:hidden}
             <div class="goal-stats">
               <div class="stat"><b id="g-proj">—</b><span>Proyección</span></div>
               <div class="stat accent"><b id="g-need">—</b><span>Falta por día</span></div>
-              <div class="stat"><b id="g-units">—</b><span>Vapes que faltan</span></div>
+              <div class="stat"><b id="g-units">—</b><span>Unidades que faltan</span></div>
             </div>
           </div>
           <div class="card s7 anim">
@@ -911,7 +912,12 @@ html.booting,html.booting body{overflow:hidden}
         <div class="grid">
           <div class="card s4 anim"><div class="card-h"><div><h2>Sabores más vendidos</h2><p>Unidades en el período</p></div><a class="link" href="#productos">Ver todos</a></div><ol class="hbars" id="r-top"></ol></div>
           <div class="card s4 anim"><div class="card-h"><div><h2>Para reponer</h2><p>Se venden y se están terminando</p></div><a class="link" href="#stock">Ver stock</a></div><ul class="list" id="r-stock"></ul></div>
-          <div class="card s4 anim"><div class="card-h"><div><h2>Últimas ventas</h2><p>En vivo desde la planilla</p></div><a class="link" href="#movimientos">Ver todas</a></div><ul class="list" id="r-feed"></ul></div>
+          <div class="card s4 anim"><div class="card-h"><div><h2>Últimas ventas</h2><p>Vapes y perfumes, en vivo desde la planilla</p></div><a class="link" href="#movimientos">Ver todas</a></div><ul class="list" id="r-feed"></ul></div>
+        </div>
+        <div class="grid">
+          <div class="card s4 anim"><div class="card-h"><div><h2>Perfumes en números</h2><p id="rp-sub">Ventas de perfumes en el período</p></div><a class="link" href="#perfumes">Ver perfumes</a></div><div class="calc-out" id="r-pnum"></div></div>
+          <div class="card s4 anim"><div class="card-h"><div><h2>Perfumes más vendidos</h2><p>Unidades en el período</p></div><a class="link" href="#perfumes">Ver stock</a></div><ol class="hbars" id="r-ptop"></ol></div>
+          <div class="card s4 anim"><div class="card-h"><div><h2>Perfumes para reponer</h2><p>Agotados o con poco stock</p></div><a class="link" href="#perfumes">Cargar stock</a></div><ul class="list" id="r-pstock"></ul></div>
         </div>
       </section>
 
@@ -2577,7 +2583,8 @@ function kpiRow(el, list, span){
   el.innerHTML = list.map(function(k){
     return '<div class="card kpi anim ' + span + '"><div class="kpi-l"><svg class="icon"><use href="#i-' + k.icon + '"/></svg>' + k.label + '</div>' +
       '<div class="kpi-v" id="' + k.id + '">' + (CNT[k.id] != null && isFinite(CNT[k.id]) ? k.fmt(CNT[k.id]) : '—') + '</div>' +
-      '<div class="kpi-row">' + (k.delta || '<span class="delta"><small style="margin:0">' + (k.note || '') + '</small></span>') + (k.spark ? sparkSVG(k.spark) : '') + '</div></div>';
+      '<div class="kpi-row">' + (k.delta || '<span class="delta"><small style="margin:0">' + (k.note || '') + '</small></span>') + (k.spark ? sparkSVG(k.spark) : '') + '</div>' +
+      (k.sub ? '<div class="kpi-sub">' + k.sub + '</div>' : '') + '</div>';
   }).join('');
   list.forEach(function(k){ countTo($(k.id), k.val, k.fmt); });
   animSpark(el);
@@ -2781,18 +2788,23 @@ function flavorRank(V){
 
 /* ---------- RESUMEN ---------- */
 function vResumen(R, V){
-  var P = DATA.ventas.filter(function(v){ return inR(v.d, R.pf, R.pt); });
-  var S = sum(V), SP = sum(P);
+  /* el Resumen es del negocio entero: vapes + perfumes (V = solo vapes, para los sabores) */
+  var VA = DATA.allVentas.filter(function(v){ return inR(v.d, R.from, R.to); });
+  var P = DATA.allVentas.filter(function(v){ return inR(v.d, R.pf, R.pt); });
+  var VP = DATA.pventas.filter(function(v){ return inR(v.d, R.from, R.to); }), PP = DATA.pventas.filter(function(v){ return inR(v.d, R.pf, R.pt); });
+  var S = sum(VA), SP = sum(P), Sv = sum(V), Sp = sum(VP), SPp = sum(PP);
   var gran = R.days > 120 ? 'w' : 'd';
-  var spF = function(m){ return buckets(V, R.from, R.to, gran, m).map(function(b){ return b.v; }); };
+  var spF = function(m){ return buckets(VA, R.from, R.to, gran, m).map(function(b){ return b.v; }); };
+  var split = function(a, b, f){ return 'vapes ' + f(a) + ' · perfumes ' + f(b); };
   kpiRow($('kpis'), [
-    { id:'k1', label:'Facturación', icon:'money', val:S.rev, fmt:moneyS, delta:R.cmp ? deltaH(S.rev, SP.rev) : '', note:'todo el historial', spark:spF('rev') },
-    { id:'k2', label:'Ganancia', icon:'trend', val:S.profit, fmt:moneyS, delta:R.cmp ? deltaH(S.profit, SP.profit) : '', note:'todo el historial', spark:spF('profit') },
-    { id:'k3', label:'Margen', icon:'pct', val:isFinite(S.margin) ? S.margin*100 : NaN, fmt:function(n){ return Math.round(n) + '%'; }, delta:R.cmp ? deltaH(S.margin, SP.margin, true) : '', note:'sobre ventas con costo' },
-    { id:'k4', label:'Vapes vendidos', icon:'bag', val:S.units, fmt:intf, delta:R.cmp ? deltaH(S.units, SP.units) : '', note:'todo el historial', spark:spF('units') },
-    { id:'k5', label:'Ventas', icon:'receipt', val:S.n, fmt:intf, delta:R.cmp ? deltaH(S.n, SP.n) : '', note:'filas en MOVIMIENTOS' },
+    { id:'k1', label:'Facturación', icon:'money', val:S.rev, fmt:moneyS, delta:R.cmp ? deltaH(S.rev, SP.rev) : '', note:'vapes + perfumes', sub:split(Sv.rev, Sp.rev, moneyS), spark:spF('rev') },
+    { id:'k2', label:'Ganancia', icon:'trend', val:S.profit, fmt:moneyS, delta:R.cmp ? deltaH(S.profit, SP.profit) : '', note:'vapes + perfumes', sub:split(Sv.profit, Sp.profit, moneyS), spark:spF('profit') },
+    { id:'k3', label:'Margen', icon:'pct', val:isFinite(S.margin) ? S.margin*100 : NaN, fmt:function(n){ return Math.round(n) + '%'; }, delta:R.cmp ? deltaH(S.margin, SP.margin, true) : '', note:'vapes + perfumes', sub:split(Sv.margin, Sp.margin, pct) },
+    { id:'k4', label:'Unidades vendidas', icon:'bag', val:S.units, fmt:intf, delta:R.cmp ? deltaH(S.units, SP.units) : '', note:'vapes + perfumes', sub:intf(Sv.units) + ' vapes · ' + intf(Sp.units) + ' perfumes', spark:spF('units') },
+    { id:'k5', label:'Ventas', icon:'receipt', val:S.n, fmt:intf, delta:R.cmp ? deltaH(S.n, SP.n) : '', note:'vapes + perfumes', sub:intf(Sv.n) + ' de vapes · ' + intf(Sp.n) + ' de perfumes' },
     { id:'k6', label:'Ticket promedio', icon:'tag', val:S.ticket, fmt:moneyS, delta:R.cmp ? deltaH(S.ticket, SP.ticket) : '', note:'por venta' }
   ], 's2');
+  vResumenPerf(R, S, Sp, SPp, VP);
 
   var now = new Date(), m0 = new Date(now.getFullYear(), now.getMonth(), 1), m1 = new Date(now.getFullYear(), now.getMonth()+1, 1);
   var M = sum(DATA.allVentas.filter(function(v){ return inR(v.d, m0, m1); }));   // la meta es del negocio: vapes + perfumes
@@ -2817,9 +2829,9 @@ function vResumen(R, V){
   });
 
   var from = R.days < 7 ? new Date(R.to.getTime() - 14*DAY) : R.from;
-  var B = buckets(DATA.ventas.filter(function(v){ return inR(v.d, from, R.to); }), from, R.to, gran, 'rev');
+  var B = buckets(DATA.allVentas.filter(function(v){ return inR(v.d, from, R.to); }), from, R.to, gran, 'rev');
   if (R.days < 7) B.forEach(function(b){ b.dim = b.d < R.from; });
-  B.forEach(function(b){ b.extra = intf(b.units) + ' ' + plural(b.units, 'vape', 'vapes'); });
+  B.forEach(function(b){ b.extra = intf(b.units) + ' ' + plural(b.units, 'unidad', 'unidades'); });
   var res = barChart($('rd-chart'), B, { h:230 });
   $('rd-avg').textContent = 'Promedio ' + moneyS(res.avg) + (gran === 'd' ? ' por día' : ' por semana');
   $('rd-sub').textContent = res.best ? 'Mejor ' + (gran === 'd' ? 'día' : 'semana') + ': ' + res.best.long + ' con ' + moneyS(res.best.v) : 'Sin ventas en este período';
@@ -2831,10 +2843,31 @@ function vResumen(R, V){
     return '<li data-id="' + esc(p.id) + '" title="Cargar stock"><span class="li-ic ' + (p.state === 'out' ? 'dark' : '') + '"><svg class="icon"><use href="#i-' + (p.state === 'out' ? 'x' : 'low') + '"/></svg></span><div class="li-m"><b>' + esc(p.sabor) + '</b><span>' + esc(tc(p.modelo)) + ' · ' + p.sold30 + ' en 30 días</span></div>' + stockPill(p) + '</li>';
   }).join('') : '<li class="empty" style="display:block">Nada urgente. Todo lo que se vende tiene stock.</li>';
 
-  var last = DATA.ventas.slice(-6).reverse();
+  var last = DATA.allVentas.slice(-6).reverse();
   $('r-feed').innerHTML = last.length ? last.map(function(m){
     return '<li><span class="li-ic"><svg class="icon"><use href="#i-bag"/></svg></span><div class="li-m"><b>' + esc(m.sabor || '—') + '</b><span>' + esc(tc(m.modelo)) + ' · ' + fds(m.d) + (m.cliente ? ' · ' + esc(tc(m.cliente)) : '') + '</span></div><div class="li-v">' + moneyS(m.total) + '<small>' + m.cant + ' u.</small></div></li>';
   }).join('') : '<li class="empty" style="display:block">Sin ventas cargadas.</li>';
+}
+
+/* ---------- RESUMEN: perfumes ---------- */
+function vResumenPerf(R, S, Sp, SPp, VP){
+  var st = DATA.pstock, u = 0; st.forEach(function(p){ if (p.stock > 0) u += p.stock; });
+  var dlt = function(a, b, isPct){ return R.cmp && b ? ' <small style="margin-left:6px">' + deltaH(a, b, isPct) + '</small>' : ''; };
+  var row = function(k, v){ return '<div class="calc-row"><span>' + k + '</span><b>' + v + '</b></div>'; };
+  $('rp-sub').textContent = R.label + ' · ' + intf(Sp.n) + ' ' + plural(Sp.n, 'venta', 'ventas');
+  $('r-pnum').innerHTML =
+    '<div class="calc-big"><span>Facturación de perfumes</span><b>' + money(Sp.rev) + '</b><small>' + (S.rev ? pct(Sp.rev / S.rev) + ' de lo que facturaste en el período' : 'sin ventas en el período') + '</small></div>' +
+    row('Ganancia', money(Sp.profit) + dlt(Sp.profit, SPp.profit)) +
+    row('Margen sobre venta', pct(Sp.margin)) +
+    row('Unidades vendidas', intf(Sp.units) + dlt(Sp.units, SPp.units)) +
+    row('Ticket promedio por venta', isFinite(Sp.ticket) ? money(Sp.ticket) : '—') +
+    row('En stock ahora', intf(u) + ' ' + plural(u, 'unidad', 'unidades') + ' de ' + st.length + ' ' + plural(st.length, 'perfume', 'perfumes'));
+  hbars($('r-ptop'), flavorRank(VP).slice(0, 6), function(i){ return intf(i.val) + ' u.'; }, function(i){ return moneyS(i.rev); });
+  if (!VP.length) $('r-ptop').innerHTML = '<li class="empty" style="display:block">Todavía no hay ventas de perfumes en este período.</li>';
+  var rep = st.filter(function(p){ return p.state !== 'ok'; }).sort(function(a, b){ return (a.state === 'out' ? 0 : 1) - (b.state === 'out' ? 0 : 1) || b.sold30 - a.sold30; }).slice(0, 6);
+  $('r-pstock').innerHTML = rep.length ? rep.map(function(p){
+    return '<li data-id="' + esc(p.id) + '" title="Cargar stock"><span class="li-ic ' + (p.state === 'out' ? 'dark' : '') + '"><svg class="icon"><use href="#i-' + (p.state === 'out' ? 'x' : 'low') + '"/></svg></span><div class="li-m"><b>' + esc(p.sabor) + '</b><span>' + esc(tc(p.modelo.replace(/^PERFUMES?\s+/, ''))) + ' · ' + p.sold30 + ' en 30 días</span></div>' + stockPill(p) + '</li>';
+  }).join('') : '<li class="empty" style="display:block">' + (st.length ? 'Todos los perfumes tienen stock.' : 'Todavía no hay perfumes en el stock.') + '</li>';
 }
 
 /* ---------- VENTAS ---------- */
@@ -4713,6 +4746,7 @@ document.addEventListener('keydown', function(e){
   if (e.key === 'v' || e.key === 'V'){ e.preventDefault(); openSale(); }
 }, true);
 
+$('r-pstock').addEventListener('click', function(e){ var li = e.target.closest('li[data-id]'); if (li) openIngreso(li.getAttribute('data-id'), 'perf'); });
 $('r-stock').addEventListener('click', function(e){ var li = e.target.closest('li[data-id]'); if (li) openIngreso(li.getAttribute('data-id')); });
 $('store-link').href = CFG.tienda || DEFAULTS.tienda;
 
